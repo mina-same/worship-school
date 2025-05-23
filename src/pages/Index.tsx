@@ -21,7 +21,7 @@ const Index: React.FC = () => {
     <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Smart Save-and-Form System</CardTitle>
+          <CardTitle className="text-2xl font-bold">The School of Worship</CardTitle>
           <CardDescription>
             Create, manage, and submit forms with real-time saving
           </CardDescription>

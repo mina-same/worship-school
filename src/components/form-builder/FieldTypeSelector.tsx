@@ -14,6 +14,9 @@ const fieldTypes = [
   { value: 'number', label: 'Number' },
   { value: 'textarea', label: 'Text Area' },
   { value: 'dropdown', label: 'Dropdown' },
+  { value: 'file', label: 'File' },
+  { value: 'image', label: 'Image' },
+  { value: 'boolean', label: 'Boolean' },
 ];
 
 export const FieldTypeSelector: React.FC<FieldTypeSelectorProps> = ({

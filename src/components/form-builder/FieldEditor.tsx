@@ -81,7 +81,7 @@ export const FieldEditor: React.FC<FieldEditorProps> = ({
               fieldType={field.type}
               onTypeChange={(value) => 
                 onUpdate(field.id, { 
-                  type: value as 'text' | 'number' | 'textarea' | 'dropdown',
+                  type: value as 'text' | 'number' | 'textarea' | 'dropdown' | 'file' | 'image' | 'boolean',
                   options: value === 'dropdown' ? 
                     field.options || [{ label: 'Option 1', value: 'option1' }] : 
                     undefined

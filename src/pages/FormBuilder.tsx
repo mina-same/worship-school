@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -266,6 +267,7 @@ const FormBuilder: React.FC = () => {
               onIsPredefinedChange={setIsPredefined}
               predefinedTemplates={predefinedTemplates}
               onTemplateSelect={loadPredefinedTemplate}
+              formId={templateId}
             />
             
             <div className="space-y-2">
