@@ -67,7 +67,12 @@ const FormBuilder: React.FC = () => {
 
           if (data) {
             setFormName(data.name);
-            setFields(data.fields || []);
+            // Ensure we're properly typing the fields data from Supabase
+            if (data.fields && Array.isArray(data.fields)) {
+              setFields(data.fields as FormField[]);
+            } else {
+              setFields([]);
+            }
             setIsPredefined(data.is_predefined || false);
           }
         }
@@ -246,7 +251,10 @@ const FormBuilder: React.FC = () => {
     if (!template) return;
     
     // Only load fields, keep the current form name
-    setFields(template.fields);
+    if (template.fields && Array.isArray(template.fields)) {
+      setFields(template.fields as FormField[]);
+    }
+    
     toast({
       title: "Template Loaded",
       description: "Fields have been loaded from the predefined template",

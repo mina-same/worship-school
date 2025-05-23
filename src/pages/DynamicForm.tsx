@@ -51,8 +51,8 @@ const DynamicForm: React.FC = () => {
           setSubmission(submissionData);
           
           // Set form data from submission
-          if (submissionData.form_data) {
-            setFormData(submissionData.form_data);
+          if (submissionData.form_data && typeof submissionData.form_data === 'object') {
+            setFormData(submissionData.form_data as Record<string, any>);
           }
           
           // If status is completed, set readonly mode
