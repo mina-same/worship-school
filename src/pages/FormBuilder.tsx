@@ -4,46 +4,23 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import { toast } from '@/components/ui/use-toast';
-import { PlusCircle, Trash2, MoveUp, MoveDown } from 'lucide-react';
-import { v4 as uuidv4 } from 'uuid';
-
-type FieldOption = {
-  label: string;
-  value: string;
-};
-
-type FormField = {
-  id: string;
-  label: string;
-  type: 'text' | 'number' | 'textarea' | 'dropdown';
-  placeholder?: string;
-  required: boolean;
-  options?: FieldOption[];
-};
-
-const fieldTypes = [
-  { value: 'text', label: 'Text' },
-  { value: 'number', label: 'Number' },
-  { value: 'textarea', label: 'Text Area' },
-  { value: 'dropdown', label: 'Dropdown' },
-];
+import { PlusCircle } from 'lucide-react';
+import { FormField, FieldOption } from '@/types/form';
+import { generateUUID } from '@/lib/uuid';
+import { FieldEditor } from '@/components/form-builder/FieldEditor';
+import { FormBuilderHeader } from '@/components/form-builder/FormBuilderHeader';
 
 const FormBuilder: React.FC = () => {
   const { templateId } = useParams();
   const { user, userRole } = useAuth();
   const navigate = useNavigate();
   
-  const [formName, setFormName] = useState('');
+  const [formName, setFormName] = useState<string>('');
   const [fields, setFields] = useState<FormField[]>([]);
-  const [isPredefined, setIsPredefined] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [isPredefined, setIsPredefined] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [saving, setSaving] = useState<boolean>(false);
   const [predefinedTemplates, setPredefinedTemplates] = useState<any[]>([]);
 
   useEffect(() => {
@@ -102,7 +79,7 @@ const FormBuilder: React.FC = () => {
 
   const addField = () => {
     const newField: FormField = {
-      id: uuidv4(),
+      id: generateUUID(),
       label: 'New Field',
       type: 'text',
       placeholder: '',
@@ -282,46 +259,14 @@ const FormBuilder: React.FC = () => {
           </CardHeader>
           
           <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="formName">Form Name</Label>
-              <Input
-                id="formName"
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                placeholder="Enter form name"
-              />
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="isPredefined"
-                checked={isPredefined}
-                onCheckedChange={setIsPredefined}
-              />
-              <Label htmlFor="isPredefined">Make this a predefined template</Label>
-            </div>
-            
-            {predefinedTemplates.length > 0 && (
-              <div className="space-y-2">
-                <Label htmlFor="predefinedTemplate">
-                  Load from predefined template
-                </Label>
-                <Select onValueChange={loadPredefinedTemplate}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a predefined template" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {predefinedTemplates.map((template) => (
-                      <SelectItem key={template.id} value={template.id}>
-                        {template.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            
-            <Separator className="my-4" />
+            <FormBuilderHeader
+              formName={formName}
+              onFormNameChange={setFormName}
+              isPredefined={isPredefined}
+              onIsPredefinedChange={setIsPredefined}
+              predefinedTemplates={predefinedTemplates}
+              onTemplateSelect={loadPredefinedTemplate}
+            />
             
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -333,137 +278,18 @@ const FormBuilder: React.FC = () => {
               
               <div className="space-y-6">
                 {fields.map((field, index) => (
-                  <Card key={field.id}>
-                    <CardContent className="pt-6">
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-medium">Field {index + 1}</h4>
-                          <div className="flex items-center space-x-2">
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => moveField(index, 'up')}
-                              disabled={index === 0}
-                            >
-                              <MoveUp className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => moveField(index, 'down')}
-                              disabled={index === fields.length - 1}
-                            >
-                              <MoveDown className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => removeField(field.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                        
-                        <div className="grid gap-4 md:grid-cols-2">
-                          <div className="space-y-2">
-                            <Label htmlFor={`${field.id}-label`}>Field Label</Label>
-                            <Input
-                              id={`${field.id}-label`}
-                              value={field.label}
-                              onChange={(e) => updateField(field.id, { label: e.target.value })}
-                            />
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <Label htmlFor={`${field.id}-type`}>Field Type</Label>
-                            <Select
-                              value={field.type}
-                              onValueChange={(value) => 
-                                updateField(field.id, { 
-                                  type: value as 'text' | 'number' | 'textarea' | 'dropdown',
-                                  options: value === 'dropdown' ? 
-                                    field.options || [{ label: 'Option 1', value: 'option1' }] : 
-                                    undefined
-                                })
-                              }
-                            >
-                              <SelectTrigger id={`${field.id}-type`}>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {fieldTypes.map((type) => (
-                                  <SelectItem key={type.value} value={type.value}>
-                                    {type.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <Label htmlFor={`${field.id}-placeholder`}>Placeholder (Optional)</Label>
-                            <Input
-                              id={`${field.id}-placeholder`}
-                              value={field.placeholder || ''}
-                              onChange={(e) =>
-                                updateField(field.id, { placeholder: e.target.value })
-                              }
-                            />
-                          </div>
-                          
-                          <div className="flex items-center space-x-2">
-                            <Switch
-                              id={`${field.id}-required`}
-                              checked={field.required}
-                              onCheckedChange={(checked) =>
-                                updateField(field.id, { required: checked })
-                              }
-                            />
-                            <Label htmlFor={`${field.id}-required`}>Required field</Label>
-                          </div>
-                        </div>
-                        
-                        {field.type === 'dropdown' && (
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <Label>Options</Label>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => addOption(field.id)}
-                              >
-                                <PlusCircle className="mr-2 h-4 w-4" /> Add Option
-                              </Button>
-                            </div>
-                            
-                            {field.options?.map((option, optionIndex) => (
-                              <div key={optionIndex} className="flex items-center space-x-2">
-                                <Input
-                                  value={option.label}
-                                  placeholder="Option label"
-                                  onChange={(e) =>
-                                    updateOption(field.id, optionIndex, {
-                                      label: e.target.value,
-                                      value: e.target.value.toLowerCase().replace(/\s+/g, '_'),
-                                    })
-                                  }
-                                />
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  onClick={() => removeOption(field.id, optionIndex)}
-                                  disabled={field.options?.length === 1}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <FieldEditor
+                    key={field.id}
+                    field={field}
+                    index={index}
+                    totalFields={fields.length}
+                    onUpdate={updateField}
+                    onRemove={removeField}
+                    onMove={moveField}
+                    onAddOption={addOption}
+                    onUpdateOption={updateOption}
+                    onRemoveOption={removeOption}
+                  />
                 ))}
                 
                 {fields.length === 0 && (

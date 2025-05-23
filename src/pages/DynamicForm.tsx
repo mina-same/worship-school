@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/components/ui/use-toast';
+import { FormField } from '@/types/form';
 
 const DynamicForm: React.FC = () => {
   const { templateId, submissionId } = useParams();
@@ -168,7 +170,7 @@ const DynamicForm: React.FC = () => {
     await saveFormData('completed');
   };
 
-  const renderFormField = (field: any) => {
+  const renderFormField = (field: FormField) => {
     const value = formData[field.id] || '';
     
     switch (field.type) {
@@ -231,7 +233,7 @@ const DynamicForm: React.FC = () => {
                 <SelectValue placeholder={field.placeholder || "Select an option"} />
               </SelectTrigger>
               <SelectContent>
-                {field.options?.map((option: any) => (
+                {field.options?.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>
@@ -272,7 +274,11 @@ const DynamicForm: React.FC = () => {
           <CardContent>
             <div className="space-y-4">
               {formTemplate?.fields && Array.isArray(formTemplate.fields) ? (
-                formTemplate.fields.map(renderFormField)
+                formTemplate.fields.map((field: FormField) => (
+                  <React.Fragment key={field.id}>
+                    {renderFormField(field)}
+                  </React.Fragment>
+                ))
               ) : (
                 <p>No form fields found</p>
               )}
