@@ -9,8 +9,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { toast } from '@/components/ui/use-toast';
+import { Switch } from '@/components/ui/switch';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import { toast } from '@/hooks/use-toast';
 import { FormField } from '@/types/form';
+import { ArrowLeft, Save, Send, User, Mail, CheckCircle } from 'lucide-react';
 
 const DynamicForm: React.FC = () => {
   const { templateId, submissionId } = useParams();
@@ -57,9 +61,23 @@ const DynamicForm: React.FC = () => {
             setFormData(submissionData.form_data as Record<string, any>);
           }
           
-          // If status is completed, set readonly mode
+          // For completed forms, allow editing but show different UI
           if (submissionData.status === 'completed') {
-            setIsReadOnly(true);
+            setIsReadOnly(false); // Allow editing even for completed forms
+          }
+        } else {
+          // Check if user already has a submission for this template
+          const { data: existingSubmission, error: existingError } = await supabase
+            .from('submissions')
+            .select('*')
+            .eq('user_id', user?.id)
+            .eq('form_template_id', templateId)
+            .single();
+
+          if (!existingError && existingSubmission) {
+            // Redirect to the existing submission
+            navigate(`/form/${templateId}/${existingSubmission.id}`);
+            return;
           }
         }
       } catch (error) {
@@ -75,7 +93,7 @@ const DynamicForm: React.FC = () => {
     };
 
     fetchFormData();
-  }, [templateId, submissionId]);
+  }, [templateId, submissionId, user?.id, navigate]);
 
   // Auto-save functionality
   useEffect(() => {
@@ -83,7 +101,7 @@ const DynamicForm: React.FC = () => {
 
     // Debounced save function
     const saveTimeout = setTimeout(async () => {
-      // Only save if we have some data and the form isn't in readonly mode
+      // Only save if we have some data
       if (Object.keys(formData).length > 0) {
         await saveFormData('in_progress');
       }
@@ -93,7 +111,7 @@ const DynamicForm: React.FC = () => {
   }, [formData]);
 
   const saveFormData = async (status: 'in_progress' | 'completed') => {
-    if (!user || !templateId || !formTemplate || (isReadOnly && status === 'completed')) return;
+    if (!user || !templateId || !formTemplate) return;
     
     try {
       setSaving(true);
@@ -170,6 +188,24 @@ const DynamicForm: React.FC = () => {
     await saveFormData('completed');
   };
 
+  const getUserInitials = () => {
+    if (!user?.email) return 'U';
+    return user.email.substring(0, 2).toUpperCase();
+  };
+
+  const getSubmissionStatusBadge = () => {
+    if (!submission) return null;
+    
+    switch (submission.status) {
+      case 'completed':
+        return <Badge className="bg-green-100 text-green-800 border-green-200">Completed</Badge>;
+      case 'in_progress':
+        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">In Progress</Badge>;
+      default:
+        return null;
+    }
+  };
+
   const renderFormField = (field: FormField) => {
     const value = formData[field.id] || '';
     
@@ -177,7 +213,9 @@ const DynamicForm: React.FC = () => {
       case 'text':
         return (
           <div key={field.id} className="space-y-2">
-            <Label htmlFor={field.id}>{field.label} {field.required && '*'}</Label>
+            <Label htmlFor={field.id} className="text-slate-700 font-medium">
+              {field.label} {field.required && <span className="text-red-500">*</span>}
+            </Label>
             <Input
               id={field.id}
               placeholder={field.placeholder}
@@ -185,6 +223,7 @@ const DynamicForm: React.FC = () => {
               onChange={(e) => handleFieldChange(field.id, e.target.value)}
               required={field.required}
               disabled={isReadOnly}
+              className="border-slate-200 focus:border-blue-500 focus:ring-blue-500"
             />
           </div>
         );
@@ -192,7 +231,9 @@ const DynamicForm: React.FC = () => {
       case 'number':
         return (
           <div key={field.id} className="space-y-2">
-            <Label htmlFor={field.id}>{field.label} {field.required && '*'}</Label>
+            <Label htmlFor={field.id} className="text-slate-700 font-medium">
+              {field.label} {field.required && <span className="text-red-500">*</span>}
+            </Label>
             <Input
               id={field.id}
               type="number"
@@ -201,6 +242,7 @@ const DynamicForm: React.FC = () => {
               onChange={(e) => handleFieldChange(field.id, e.target.value)}
               required={field.required}
               disabled={isReadOnly}
+              className="border-slate-200 focus:border-blue-500 focus:ring-blue-500"
             />
           </div>
         );
@@ -208,7 +250,9 @@ const DynamicForm: React.FC = () => {
       case 'textarea':
         return (
           <div key={field.id} className="space-y-2">
-            <Label htmlFor={field.id}>{field.label} {field.required && '*'}</Label>
+            <Label htmlFor={field.id} className="text-slate-700 font-medium">
+              {field.label} {field.required && <span className="text-red-500">*</span>}
+            </Label>
             <Textarea
               id={field.id}
               placeholder={field.placeholder}
@@ -216,6 +260,7 @@ const DynamicForm: React.FC = () => {
               onChange={(e) => handleFieldChange(field.id, e.target.value)}
               required={field.required}
               disabled={isReadOnly}
+              className="border-slate-200 focus:border-blue-500 focus:ring-blue-500 min-h-[100px]"
             />
           </div>
         );
@@ -223,13 +268,15 @@ const DynamicForm: React.FC = () => {
       case 'dropdown':
         return (
           <div key={field.id} className="space-y-2">
-            <Label htmlFor={field.id}>{field.label} {field.required && '*'}</Label>
+            <Label htmlFor={field.id} className="text-slate-700 font-medium">
+              {field.label} {field.required && <span className="text-red-500">*</span>}
+            </Label>
             <Select
               value={value}
               onValueChange={(value) => handleFieldChange(field.id, value)}
               disabled={isReadOnly}
             >
-              <SelectTrigger>
+              <SelectTrigger className="border-slate-200 focus:border-blue-500 focus:ring-blue-500">
                 <SelectValue placeholder={field.placeholder || "Select an option"} />
               </SelectTrigger>
               <SelectContent>
@@ -242,6 +289,50 @@ const DynamicForm: React.FC = () => {
             </Select>
           </div>
         );
+
+      case 'boolean':
+        return (
+          <div key={field.id} className="space-y-2">
+            <div className="flex items-center space-x-3">
+              <Switch
+                id={field.id}
+                checked={value === true || value === 'true'}
+                onCheckedChange={(checked) => handleFieldChange(field.id, checked)}
+                disabled={isReadOnly}
+              />
+              <Label htmlFor={field.id} className="text-slate-700 font-medium">
+                {field.label} {field.required && <span className="text-red-500">*</span>}
+              </Label>
+            </div>
+          </div>
+        );
+
+      case 'file':
+      case 'image':
+        return (
+          <div key={field.id} className="space-y-2">
+            <Label htmlFor={field.id} className="text-slate-700 font-medium">
+              {field.label} {field.required && <span className="text-red-500">*</span>}
+            </Label>
+            <Input
+              id={field.id}
+              type="file"
+              accept={field.type === 'image' ? 'image/*' : undefined}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  handleFieldChange(field.id, file.name);
+                }
+              }}
+              required={field.required}
+              disabled={isReadOnly}
+              className="border-slate-200 focus:border-blue-500 focus:ring-blue-500"
+            />
+            {value && (
+              <p className="text-sm text-slate-600">Selected: {value}</p>
+            )}
+          </div>
+        );
         
       default:
         return null;
@@ -250,29 +341,91 @@ const DynamicForm: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="h-16 w-16 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="h-16 w-16 mx-auto animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+          <p className="text-slate-600 font-medium">Loading form...</p>
+        </div>
       </div>
     );
   }
 
+  const getButtonText = () => {
+    if (submission?.status === 'completed') {
+      return 'Update Submission';
+    }
+    return 'Submit Form';
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 p-4">
-      <div className="mx-auto max-w-3xl">
-        <Button variant="outline" className="mb-4" onClick={() => navigate('/dashboard')}>
-          Back to Dashboard
-        </Button>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>{formTemplate?.name}</CardTitle>
-            {isReadOnly && (
-              <p className="text-sm text-muted-foreground">This form has been submitted and cannot be edited.</p>
-            )}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+      {/* Header */}
+      <div className="bg-white/80 backdrop-blur-lg border-b border-slate-200/60 shadow-sm">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/dashboard')}
+              className="hover:bg-slate-100"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Dashboard
+            </Button>
+            
+            {/* User Info */}
+            <div className="flex items-center space-x-4">
+              <div className="text-right hidden sm:block">
+                <div className="flex items-center space-x-2 text-sm text-slate-600">
+                  <Mail className="h-4 w-4" />
+                  <span>{user?.email}</span>
+                </div>
+                {getSubmissionStatusBadge()}
+              </div>
+              
+              <Avatar className="h-10 w-10 ring-2 ring-blue-500/20">
+                <AvatarImage 
+                  src={user?.user_metadata?.avatar_url} 
+                  alt={user?.email || 'User'} 
+                />
+                <AvatarFallback className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-semibold">
+                  {getUserInitials()}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Form Content */}
+      <div className="container mx-auto px-6 py-8 max-w-4xl">
+        <Card className="bg-white/80 backdrop-blur-sm border-white/20 shadow-xl">
+          <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-2xl">{formTemplate?.name}</CardTitle>
+                {submission?.status === 'completed' && (
+                  <div className="flex items-center space-x-2 mt-2">
+                    <CheckCircle className="h-5 w-5" />
+                    <span className="text-blue-100">This form has been completed and can be edited</span>
+                  </div>
+                )}
+              </div>
+              
+              {/* User Avatar in header */}
+              <Avatar className="h-16 w-16 ring-4 ring-white/30">
+                <AvatarImage 
+                  src={user?.user_metadata?.avatar_url} 
+                  alt={user?.email || 'User'} 
+                />
+                <AvatarFallback className="bg-white/20 text-white font-bold text-lg">
+                  {getUserInitials()}
+                </AvatarFallback>
+              </Avatar>
+            </div>
           </CardHeader>
           
-          <CardContent>
-            <div className="space-y-4">
+          <CardContent className="p-8">
+            <div className="space-y-6">
               {formTemplate?.fields && Array.isArray(formTemplate.fields) ? (
                 formTemplate.fields.map((field: FormField) => (
                   <React.Fragment key={field.id}>
@@ -280,28 +433,33 @@ const DynamicForm: React.FC = () => {
                   </React.Fragment>
                 ))
               ) : (
-                <p>No form fields found</p>
+                <div className="text-center py-8">
+                  <p className="text-slate-600">No form fields found</p>
+                </div>
               )}
             </div>
           </CardContent>
           
-          {!isReadOnly && (
-            <CardFooter className="flex justify-between">
-              <Button 
-                variant="outline" 
-                onClick={() => saveFormData('in_progress')}
-                disabled={saving || submitting}
-              >
-                {saving ? 'Saving...' : 'Save Progress'}
-              </Button>
-              <Button 
-                onClick={handleSubmit}
-                disabled={saving || submitting}
-              >
-                {submitting ? 'Submitting...' : 'Submit Form'}
-              </Button>
-            </CardFooter>
-          )}
+          <CardFooter className="flex justify-between bg-slate-50 rounded-b-lg p-6">
+            <Button 
+              variant="outline" 
+              onClick={() => saveFormData('in_progress')}
+              disabled={saving || submitting}
+              className="flex items-center space-x-2"
+            >
+              <Save className="h-4 w-4" />
+              <span>{saving ? 'Saving...' : 'Save Progress'}</span>
+            </Button>
+            
+            <Button 
+              onClick={handleSubmit}
+              disabled={saving || submitting}
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 flex items-center space-x-2"
+            >
+              <Send className="h-4 w-4" />
+              <span>{submitting ? 'Submitting...' : getButtonText()}</span>
+            </Button>
+          </CardFooter>
         </Card>
       </div>
     </div>
