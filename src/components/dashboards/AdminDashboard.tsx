@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -27,16 +26,16 @@ const AdminDashboard: React.FC = () => {
       if (assignmentsData) {
         setAssignments(assignmentsData);
         
-        // Get user IDs from assignments
+        // Get user IDs from assignments (these should be regular users only)
         const userIds = assignmentsData.map(assignment => assignment.user_id);
         
         if (userIds.length > 0) {
-          // Then fetch all submissions for assigned users with notes
+          // Fetch submissions only from assigned regular users (exclude admin/super_admin submissions)
           const { data: submissionsData, error: submissionsError } = await supabase
             .from('submissions')
             .select(`
               *,
-              user:users(email),
+              user:users!inner(email, role),
               form_template:form_templates(name, fields),
               admin_notes(
                 id,
@@ -46,6 +45,7 @@ const AdminDashboard: React.FC = () => {
               )
             `)
             .in('user_id', userIds)
+            .eq('user.role', 'user')
             .order('last_updated', { ascending: false });
 
           if (submissionsError) throw submissionsError;

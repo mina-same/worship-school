@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -33,12 +32,12 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ formTemplates
       const adminsData = usersData?.filter(user => user.role === 'admin') || [];
       setAdmins(adminsData);
       
-      // Fetch all submissions with notes
+      // Fetch submissions only from regular users (exclude admin/super_admin submissions)
       const { data: submissionsData, error: submissionsError } = await supabase
         .from('submissions')
         .select(`
           *,
-          user:users(email),
+          user:users!inner(email, role),
           form_template:form_templates(name, fields),
           admin_notes(
             id,
@@ -47,6 +46,7 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ formTemplates
             admin:users(email)
           )
         `)
+        .eq('user.role', 'user')
         .order('last_updated', { ascending: false });
         
       if (submissionsError) throw submissionsError;
