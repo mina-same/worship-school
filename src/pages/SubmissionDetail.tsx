@@ -7,7 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/ui/use-toast';
+import { EyeOff, Lock } from 'lucide-react';
 
 const SubmissionDetail: React.FC = () => {
   const { submissionId } = useParams();
@@ -20,6 +22,7 @@ const SubmissionDetail: React.FC = () => {
   const [newNote, setNewNote] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [adminAccessLevel, setAdminAccessLevel] = useState<'full' | 'partial'>('partial');
 
   useEffect(() => {
     // Check if user is admin or super_admin
@@ -30,7 +33,23 @@ const SubmissionDetail: React.FC = () => {
 
     const fetchSubmissionData = async () => {
       try {
-        if (!submissionId) return;
+        if (!submissionId || !user) return;
+
+        // Get admin access level
+        if (userRole === 'admin') {
+          const { data: adminData } = await supabase
+            .from('users')
+            .select('metadata')
+            .eq('id', user.id)
+            .single();
+          
+          if (adminData?.metadata?.access_level) {
+            setAdminAccessLevel(adminData.metadata.access_level);
+          }
+        } else {
+          // Super admins have full access
+          setAdminAccessLevel('full');
+        }
 
         // Fetch the submission
         const { data: submissionData, error: submissionError } = await supabase
@@ -128,6 +147,10 @@ const SubmissionDetail: React.FC = () => {
     }
   };
 
+  const canViewSensitiveField = (field: any) => {
+    return userRole === 'super_admin' || adminAccessLevel === 'full' || !field.sensitive;
+  };
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -159,7 +182,15 @@ const SubmissionDetail: React.FC = () => {
         
         <Card className="mb-6">
           <CardHeader>
-            <CardTitle>Submission Details</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Submission Details</CardTitle>
+              {userRole === 'admin' && (
+                <Badge variant={adminAccessLevel === 'full' ? 'default' : 'secondary'} className="flex items-center gap-1">
+                  {adminAccessLevel === 'full' ? 'Full Access' : 'Partial Access'}
+                  {adminAccessLevel === 'partial' && <EyeOff className="h-3 w-3" />}
+                </Badge>
+              )}
+            </div>
           </CardHeader>
           
           <CardContent className="space-y-4">
@@ -193,11 +224,30 @@ const SubmissionDetail: React.FC = () => {
               {formTemplate.fields && Array.isArray(formTemplate.fields) ? (
                 formTemplate.fields.map((field: any) => {
                   const value = submission.form_data?.[field.id];
+                  const canView = canViewSensitiveField(field);
                   
                   return (
                     <div key={field.id} className="mb-4">
-                      <div className="text-sm font-medium">{field.label}</div>
-                      <div>{value !== undefined && value !== '' ? value : 'Not provided'}</div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="text-sm font-medium">{field.label}</div>
+                        {field.sensitive && (
+                          <Badge variant="outline" className="text-xs flex items-center gap-1">
+                            <Lock className="h-3 w-3" />
+                            Sensitive
+                          </Badge>
+                        )}
+                      </div>
+                      
+                      {canView ? (
+                        <div className={`${field.sensitive && adminAccessLevel === 'partial' ? 'opacity-50' : ''}`}>
+                          {value !== undefined && value !== '' ? value : 'Not provided'}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-slate-500 italic">
+                          <Lock className="h-4 w-4" />
+                          Question answered - Content restricted due to partial access
+                        </div>
+                      )}
                     </div>
                   );
                 })

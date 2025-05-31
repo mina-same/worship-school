@@ -10,5 +10,6 @@ export type FormField = {
   type: 'text' | 'number' | 'textarea' | 'dropdown' | 'file' | 'image' | 'boolean';
   placeholder?: string;
   required: boolean;
+  sensitive?: boolean;
   options?: FieldOption[];
 };

@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, FileText, Shield, Activity, Settings } from 'lucide-react';
+import { Users, FileText, Shield, Activity, Settings, Edit } from 'lucide-react';
 import SubmissionsTable from '@/components/submissions/SubmissionsTable';
 import { useNavigate } from 'react-router-dom';
 
@@ -13,9 +13,10 @@ const SuperAdminDashboard: React.FC = () => {
     totalUsers: 0,
     totalAdmins: 0,
     totalSubmissions: 0,
-    totalAssignments: 0
+    totalForms: 0
   });
   const [submissions, setSubmissions] = useState<any[]>([]);
+  const [formTemplates, setFormTemplates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
@@ -45,19 +46,21 @@ const SuperAdminDashboard: React.FC = () => {
         .eq('user.role', 'user')
         .order('last_updated', { ascending: false });
 
-      // Fetch assignments count
-      const { data: assignments } = await supabase
-        .from('admin_assignments')
-        .select('*');
+      // Fetch form templates
+      const { data: forms } = await supabase
+        .from('form_templates')
+        .select('*')
+        .order('created_at', { ascending: false });
 
       setStats({
         totalUsers,
         totalAdmins,
         totalSubmissions: submissionsData?.length || 0,
-        totalAssignments: assignments?.length || 0
+        totalForms: forms?.length || 0
       });
 
       setSubmissions(submissionsData || []);
+      setFormTemplates(forms || []);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -84,7 +87,7 @@ const SuperAdminDashboard: React.FC = () => {
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
-        table: 'admin_assignments'
+        table: 'form_templates'
       }, fetchData)
       .subscribe();
 
@@ -157,8 +160,8 @@ const SuperAdminDashboard: React.FC = () => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div className="space-y-2">
-                <p className="text-orange-100 text-sm font-medium">Admin Assignments</p>
-                <p className="text-3xl font-bold">{stats.totalAssignments}</p>
+                <p className="text-orange-100 text-sm font-medium">Total Forms</p>
+                <p className="text-3xl font-bold">{stats.totalForms}</p>
               </div>
               <div className="h-12 w-12 rounded-full bg-white/20 flex items-center justify-center">
                 <Activity className="h-6 w-6 text-white" />
@@ -207,16 +210,16 @@ const SuperAdminDashboard: React.FC = () => {
         <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
           <CardContent className="p-6 text-center">
             <div className="h-12 w-12 mx-auto rounded-lg bg-green-100 flex items-center justify-center mb-4">
-              <Activity className="h-6 w-6 text-green-600" />
+              <Edit className="h-6 w-6 text-green-600" />
             </div>
-            <h3 className="font-semibold text-slate-800 mb-2">Admin Assignments</h3>
-            <p className="text-slate-600 text-sm mb-4">Legacy assignment management</p>
+            <h3 className="font-semibold text-slate-800 mb-2">Previous Forms</h3>
+            <p className="text-slate-600 text-sm mb-4">View and edit existing form templates</p>
             <Button 
-              onClick={() => navigate('/admin-assignments')}
+              onClick={() => navigate('/super-admin/forms')}
               variant="outline" 
               className="w-full"
             >
-              Legacy View
+              Manage Forms
             </Button>
           </CardContent>
         </Card>

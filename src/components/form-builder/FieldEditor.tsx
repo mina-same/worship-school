@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { MoveUp, MoveDown, Trash2, PlusCircle } from 'lucide-react';
+import { MoveUp, MoveDown, Trash2, PlusCircle, Eye, EyeOff } from 'lucide-react';
 import { FormField, FieldOption } from '@/types/form';
 import { FieldTypeSelector } from './FieldTypeSelector';
 import { OptionsList } from './OptionsList';
@@ -109,6 +109,22 @@ export const FieldEditor: React.FC<FieldEditorProps> = ({
                 }
               />
               <Label htmlFor={`${field.id}-required`}>Required field</Label>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id={`${field.id}-sensitive`}
+                checked={field.sensitive || false}
+                onCheckedChange={(checked) =>
+                  onUpdate(field.id, { sensitive: checked })
+                }
+              />
+              <Label htmlFor={`${field.id}-sensitive`} className="flex items-center gap-2">
+                {field.sensitive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                Sensitive Information
+              </Label>
             </div>
           </div>
           
