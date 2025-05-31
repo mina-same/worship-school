@@ -13,6 +13,7 @@ import DynamicForm from "@/pages/DynamicForm";
 import FormBuilder from "@/pages/FormBuilder";
 import SubmissionDetail from "@/pages/SubmissionDetail";
 import AdminAssignments from "@/pages/AdminAssignments";
+import InvitePage from "@/pages/InvitePage";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
             {/* Public routes */}
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/invite/:inviteCode" element={<InvitePage />} />
             
             {/* Protected routes that require authentication */}
             <Route 

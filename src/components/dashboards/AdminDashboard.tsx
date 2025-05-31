@@ -1,9 +1,11 @@
+
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, FileText, MessageSquare, TrendingUp, Clock, Activity, CheckCircle } from 'lucide-react';
 import SubmissionsTable from '@/components/submissions/SubmissionsTable';
+import AdminInviteLink from '@/components/admin/AdminInviteLink';
 
 const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -211,6 +213,9 @@ const AdminDashboard: React.FC = () => {
         </Card>
       </div>
 
+      {/* Admin Invite Link */}
+      <AdminInviteLink />
+
       {/* Assigned Users */}
       <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
         <CardHeader className="border-b border-slate-100">
@@ -259,7 +264,7 @@ const AdminDashboard: React.FC = () => {
                 <Users className="h-8 w-8 text-slate-400" />
               </div>
               <h3 className="text-lg font-medium text-slate-800 mb-2">No users assigned</h3>
-              <p className="text-slate-600">You don't have any users assigned to you yet.</p>
+              <p className="text-slate-600">Share your invite link above to get users assigned to you automatically.</p>
             </div>
           )}
         </CardContent>

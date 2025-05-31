@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -6,6 +7,7 @@ import { Link } from 'react-router-dom';
 import { PlusCircle, Users, FileText, Settings, BarChart3, TrendingUp, Activity, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import SubmissionsTable from '@/components/submissions/SubmissionsTable';
+import UserManagement from '@/components/admin/UserManagement';
 
 type SuperAdminDashboardProps = {
   formTemplates: Tables<'form_templates'>[];
@@ -229,6 +231,9 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ formTemplates
         </Card>
       </div>
 
+      {/* User Management Section */}
+      <UserManagement />
+
       {/* Form Templates Section */}
       <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
         <CardHeader className="border-b border-slate-100">
@@ -308,54 +313,6 @@ const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({ formTemplates
               </Button>
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      {/* Admin-User Assignments */}
-      <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
-        <CardHeader className="border-b border-slate-100">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <CardTitle className="flex items-center gap-3 text-xl font-semibold text-slate-800">
-                <div className="h-8 w-8 rounded-lg bg-purple-100 flex items-center justify-center">
-                  <Users className="h-4 w-4 text-purple-600" />
-                </div>
-                User Management
-              </CardTitle>
-              <p className="text-slate-600">Manage admin-user assignments</p>
-            </div>
-            <Button asChild variant="outline" className="border-slate-300 hover:bg-slate-50">
-              <Link to="/admin-assignments">Manage Assignments</Link>
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="p-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-4">
-              <h4 className="font-semibold text-slate-800">System Overview</h4>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50">
-                  <span className="text-slate-600">Total Admins</span>
-                  <span className="font-semibold text-slate-800">{admins.length}</span>
-                </div>
-                <div className="flex items-center justify-between p-3 rounded-lg bg-slate-50">
-                  <span className="text-slate-600">Total Users</span>
-                  <span className="font-semibold text-slate-800">{users.filter(user => user.role === 'user').length}</span>
-                </div>
-              </div>
-            </div>
-            <div className="space-y-4">
-              <h4 className="font-semibold text-slate-800">Recent Activity</h4>
-              <div className="space-y-2">
-                <div className="text-sm text-slate-600 p-3 rounded-lg bg-green-50 border border-green-200">
-                  System running smoothly
-                </div>
-                <div className="text-sm text-slate-600 p-3 rounded-lg bg-blue-50 border border-blue-200">
-                  {submissions.length} total submissions
-                </div>
-              </div>
-            </div>
-          </div>
         </CardContent>
       </Card>
 
