@@ -14,6 +14,8 @@ import FormBuilder from "@/pages/FormBuilder";
 import SubmissionDetail from "@/pages/SubmissionDetail";
 import AdminAssignments from "@/pages/AdminAssignments";
 import InvitePage from "@/pages/InvitePage";
+import AdminUserManagement from "@/pages/AdminUserManagement";
+import SuperAdminUserManagement from "@/pages/SuperAdminUserManagement";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
 const queryClient = new QueryClient();
@@ -68,6 +70,14 @@ const App = () => (
                 </ProtectedRoute>
               } 
             />
+            <Route 
+              path="/admin/user-management" 
+              element={
+                <ProtectedRoute allowedRoles={['admin']}>
+                  <AdminUserManagement />
+                </ProtectedRoute>
+              } 
+            />
             
             {/* Super admin routes */}
             <Route 
@@ -91,6 +101,14 @@ const App = () => (
               element={
                 <ProtectedRoute allowedRoles={['super_admin']}>
                   <AdminAssignments />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/super-admin/user-management" 
+              element={
+                <ProtectedRoute allowedRoles={['super_admin']}>
+                  <SuperAdminUserManagement />
                 </ProtectedRoute>
               } 
             />

@@ -21,18 +21,14 @@ const InvitePage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(true);
+  const [isAlreadyAssigned, setIsAlreadyAssigned] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      navigate('/dashboard');
-      return;
-    }
-
     const fetchAdminInfo = async () => {
       if (!inviteCode) return;
       
       try {
-        const adminId = atob(inviteCode); // Decode the admin ID
+        const adminId = atob(inviteCode);
         const { data: adminData } = await supabase
           .from('users')
           .select('email')
@@ -43,13 +39,59 @@ const InvitePage: React.FC = () => {
         if (adminData) {
           setAdminEmail(adminData.email);
         }
+
+        // If user is already signed in, check if assignment exists and create if not
+        if (user) {
+          await handleExistingUserAssignment(adminId, user.id);
+        }
       } catch (error) {
         console.error('Error fetching admin info:', error);
       }
     };
 
     fetchAdminInfo();
-  }, [inviteCode, user, navigate]);
+  }, [inviteCode, user]);
+
+  const handleExistingUserAssignment = async (adminId: string, userId: string) => {
+    try {
+      // Check if assignment already exists
+      const { data: existingAssignment } = await supabase
+        .from('admin_assignments')
+        .select('id')
+        .eq('admin_id', adminId)
+        .eq('user_id', userId)
+        .single();
+
+      if (existingAssignment) {
+        setIsAlreadyAssigned(true);
+        toast({
+          title: "Already Assigned",
+          description: `You are already assigned to admin ${adminEmail}`,
+        });
+      } else {
+        // Create new assignment
+        const { error } = await supabase
+          .from('admin_assignments')
+          .insert({
+            admin_id: adminId,
+            user_id: userId
+          });
+
+        if (!error) {
+          toast({
+            title: "Success",
+            description: `You have been assigned to admin ${adminEmail}`,
+          });
+          // Redirect to dashboard after 2 seconds
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 2000);
+        }
+      }
+    } catch (error) {
+      console.error('Error handling assignment:', error);
+    }
+  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,8 +111,7 @@ const InvitePage: React.FC = () => {
         const { error } = await signIn(email, password);
         if (error) throw error;
         
-        // Create assignment for existing user
-        await createAssignment(adminId);
+        // The assignment will be handled in useEffect when user state updates
       }
     } catch (error: any) {
       toast({
@@ -125,6 +166,57 @@ const InvitePage: React.FC = () => {
             <p className="text-red-600">Invalid invite link</p>
           </CardContent>
         </Card>
+      </div>
+    );
+  }
+
+  // If user is already signed in and assigned
+  if (user && isAlreadyAssigned) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+        <div className="flex min-h-screen items-center justify-center p-4">
+          <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 h-16 w-16 rounded-2xl bg-gradient-to-br from-green-600 to-emerald-600 flex items-center justify-center shadow-lg">
+                <UserCheck className="h-8 w-8 text-white" />
+              </div>
+              <CardTitle className="text-xl font-semibold text-slate-800">
+                Already Assigned
+              </CardTitle>
+              <CardDescription className="text-slate-600">
+                You are already assigned to admin {adminEmail}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="text-center">
+              <Button onClick={() => navigate('/dashboard')} className="w-full">
+                Go to Dashboard
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // If user is already signed in but not assigned yet
+  if (user && !isAlreadyAssigned) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+        <div className="flex min-h-screen items-center justify-center p-4">
+          <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg">
+                <UserCheck className="h-8 w-8 text-white" />
+              </div>
+              <CardTitle className="text-xl font-semibold text-slate-800">
+                Assignment in Progress
+              </CardTitle>
+              <CardDescription className="text-slate-600">
+                You are being assigned to admin {adminEmail}...
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
       </div>
     );
   }
