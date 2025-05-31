@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,9 +8,9 @@ type AuthContextType = {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
+  signIn: (email: string, password: string) => Promise<{ error?: any }>;
   signInWithGoogle: () => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<{ error?: any }>;
   signOut: () => Promise<void>;
   userRole: 'user' | 'admin' | 'super_admin' | null;
 };
@@ -91,7 +90,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           description: error.message,
           variant: "destructive"
         });
-        throw error;
+        return { error };
       }
 
       toast({
@@ -103,8 +102,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data.user) {
         navigate('/dashboard');
       }
+      
+      return {};
     } catch (error) {
       console.error('Sign in error:', error);
+      return { error };
     }
   };
 
@@ -143,15 +145,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           description: error.message,
           variant: "destructive"
         });
-        throw error;
+        return { error };
       }
 
       toast({
         title: "Registration successful",
         description: "Please check your email for verification.",
       });
+      
+      return {};
     } catch (error) {
       console.error('Sign up error:', error);
+      return { error };
     }
   };
 
