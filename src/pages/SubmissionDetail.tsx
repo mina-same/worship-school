@@ -43,8 +43,11 @@ const SubmissionDetail: React.FC = () => {
             .eq('id', user.id)
             .single();
           
-          if (adminData?.metadata?.access_level) {
-            setAdminAccessLevel(adminData.metadata.access_level);
+          if (adminData?.metadata && typeof adminData.metadata === 'object' && adminData.metadata !== null) {
+            const metadata = adminData.metadata as { access_level?: string };
+            if (metadata.access_level) {
+              setAdminAccessLevel(metadata.access_level as 'full' | 'partial');
+            }
           }
         } else {
           // Super admins have full access
