@@ -164,7 +164,7 @@ const Dashboard: React.FC = () => {
         <Card className="bg-white/70 backdrop-blur-sm border-white/20 shadow-xl">
           <CardContent className="p-8">
             {userRole === 'super_admin' && (
-              <SuperAdminDashboard formTemplates={formTemplates} />
+              <SuperAdminDashboard />
             )}
             
             {userRole === 'admin' && (
