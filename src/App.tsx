@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Route, Routes } from 'react-router-dom';
 import Index from '@/pages/Index';
@@ -20,7 +19,7 @@ function App() {
     <Routes>
       <Route path="/" element={<Index />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/invite/:adminId" element={<InvitePage />} />
+      <Route path="/invite/:inviteCode" element={<InvitePage />} />
       <Route path="/dashboard" element={
         <ProtectedRoute>
           <Dashboard />
