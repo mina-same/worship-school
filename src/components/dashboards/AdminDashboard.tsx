@@ -19,43 +19,58 @@ const AdminDashboard: React.FC = () => {
     try {
       if (!user) return;
 
+      console.log('Fetching assignments for admin:', user.id);
+
       // First, get all assignments for this admin
       const { data: assignmentsData, error: assignmentsError } = await supabase
         .from('admin_assignments')
-        .select('*, user:users(id, email)')
+        .select(`
+          *,
+          user:users!admin_assignments_user_id_fkey(id, email, role)
+        `)
         .eq('admin_id', user.id);
 
-      if (assignmentsError) throw assignmentsError;
+      if (assignmentsError) {
+        console.error('Error fetching assignments:', assignmentsError);
+        throw assignmentsError;
+      }
+
+      console.log('Assignments data:', assignmentsData);
 
       if (assignmentsData) {
         setAssignments(assignmentsData);
         
-        // Get user IDs from assignments (these should be regular users only)
+        // Get user IDs from assignments
         const userIds = assignmentsData.map(assignment => assignment.user_id);
+        console.log('User IDs to fetch submissions for:', userIds);
         
         if (userIds.length > 0) {
-          // Fetch submissions only from assigned regular users (exclude admin/super_admin submissions)
+          // Fetch submissions from assigned users
           const { data: submissionsData, error: submissionsError } = await supabase
             .from('submissions')
             .select(`
               *,
-              user:users!inner(email, role),
-              form_template:form_templates(name, fields),
+              user:users!submissions_user_id_fkey(email, role),
+              form_template:form_templates!submissions_form_template_id_fkey(name, fields),
               admin_notes(
                 id,
                 note,
                 created_at,
-                admin:users(email)
+                admin:users!admin_notes_admin_id_fkey(email)
               )
             `)
             .in('user_id', userIds)
-            .eq('user.role', 'user')
             .order('last_updated', { ascending: false });
 
-          if (submissionsError) throw submissionsError;
+          if (submissionsError) {
+            console.error('Error fetching submissions:', submissionsError);
+            throw submissionsError;
+          }
+          
+          console.log('Submissions data:', submissionsData);
           setSubmissions(submissionsData || []);
         } else {
-          // No assignments, so no submissions to show
+          console.log('No user assignments found');
           setSubmissions([]);
         }
       }
@@ -77,6 +92,7 @@ const AdminDashboard: React.FC = () => {
         schema: 'public',
         table: 'submissions'
       }, () => {
+        console.log('Submissions changed, refreshing data');
         fetchAssignments();
       })
       .on('postgres_changes', {
@@ -84,6 +100,15 @@ const AdminDashboard: React.FC = () => {
         schema: 'public',
         table: 'admin_notes'
       }, () => {
+        console.log('Admin notes changed, refreshing data');
+        fetchAssignments();
+      })
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'admin_assignments'
+      }, () => {
+        console.log('Admin assignments changed, refreshing data');
         fetchAssignments();
       })
       .subscribe();
@@ -239,7 +264,50 @@ const AdminDashboard: React.FC = () => {
         </Card>
       </div>
 
-      {/* Submissions Table - only show submissions from assigned users */}
+      {/* Assigned Users Section */}
+      {assignments.length > 0 && (
+        <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
+          <CardHeader className="border-b border-slate-100">
+            <CardTitle className="flex items-center gap-3 text-xl font-semibold text-slate-800">
+              <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                <Users className="h-4 w-4 text-blue-600" />
+              </div>
+              Assigned Users ({assignments.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {assignments.map((assignment) => (
+                <div
+                  key={assignment.id}
+                  className="group rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:border-blue-300"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white font-semibold text-sm">
+                      {assignment.user?.email?.substring(0, 2).toUpperCase() || 'U'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-slate-800 truncate group-hover:text-blue-600 transition-colors">
+                        {assignment.user?.email || 'Unknown User'}
+                      </h3>
+                      <p className="text-sm text-slate-500">
+                        Assigned {new Date(assignment.created_at).toLocaleDateString()}
+                      </p>
+                      <div className="mt-2">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Active
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Submissions Table */}
       <SubmissionsTable submissions={submissions} onRefresh={fetchAssignments} />
     </div>
   );
