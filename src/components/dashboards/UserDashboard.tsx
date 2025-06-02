@@ -6,7 +6,7 @@ import { Tables } from '@/integrations/supabase/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
-import { Clock, CheckCircle, PlayCircle, FileText, Calendar } from 'lucide-react';
+import { Clock, CheckCircle, PlayCircle, FileText, Calendar, UserCheck, Mail } from 'lucide-react';
 
 type UserDashboardProps = {
   formTemplates: Tables<'form_templates'>[];
@@ -15,14 +15,16 @@ type UserDashboardProps = {
 const UserDashboard: React.FC<UserDashboardProps> = ({ formTemplates }) => {
   const { user } = useAuth();
   const [submissions, setSubmissions] = useState<any[]>([]);
+  const [assignedAdmin, setAssignedAdmin] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
 
-    const fetchSubmissions = async () => {
+    const fetchData = async () => {
       try {
-        const { data, error } = await supabase
+        // Fetch submissions
+        const { data: submissionsData, error: submissionsError } = await supabase
           .from('submissions')
           .select(`
             *,
@@ -30,16 +32,31 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ formTemplates }) => {
           `)
           .eq('user_id', user.id);
 
-        if (error) throw error;
-        setSubmissions(data || []);
+        if (submissionsError) throw submissionsError;
+        setSubmissions(submissionsData || []);
+
+        // Fetch assigned admin
+        const { data: assignmentData, error: assignmentError } = await supabase
+          .from('admin_assignments')
+          .select(`
+            admin:users!admin_assignments_admin_id_fkey(email)
+          `)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (assignmentError) {
+          console.error('Error fetching admin assignment:', assignmentError);
+        } else if (assignmentData?.admin) {
+          setAssignedAdmin(assignmentData.admin.email);
+        }
       } catch (error) {
-        console.error('Error fetching submissions:', error);
+        console.error('Error fetching data:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchSubmissions();
+    fetchData();
   }, [user]);
 
   const getStatusIcon = (status: string) => {
@@ -85,6 +102,23 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ formTemplates }) => {
 
   return (
     <div className="space-y-8">
+      {/* Admin Assignment Section */}
+      {assignedAdmin && (
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
+          <div className="flex items-center space-x-3 mb-2">
+            <UserCheck className="h-5 w-5 text-blue-600" />
+            <h3 className="text-lg font-semibold text-blue-800">Your Admin</h3>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Mail className="h-4 w-4 text-blue-600" />
+            <span className="text-blue-700 font-medium">{assignedAdmin}</span>
+          </div>
+          <p className="text-sm text-blue-600 mt-2">
+            This admin supervises your learning progress and can provide guidance.
+          </p>
+        </div>
+      )}
+
       {/* Available Forms Section */}
       <div>
         <div className="flex items-center space-x-3 mb-6">

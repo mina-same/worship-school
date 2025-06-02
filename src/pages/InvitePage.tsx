@@ -22,6 +22,7 @@ const InvitePage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(true);
   const [isAlreadyAssigned, setIsAlreadyAssigned] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     const fetchAdminInfo = async () => {
@@ -29,13 +30,18 @@ const InvitePage: React.FC = () => {
       
       try {
         const adminId = atob(inviteCode);
-        const { data: adminData } = await supabase
+        const { data: adminData, error } = await supabase
           .from('users')
           .select('email')
           .eq('id', adminId)
           .eq('role', 'admin')
           .single();
           
+        if (error) {
+          console.error('Error fetching admin:', error);
+          return;
+        }
+
         if (adminData) {
           setAdminEmail(adminData.email);
         }
@@ -54,13 +60,20 @@ const InvitePage: React.FC = () => {
 
   const handleExistingUserAssignment = async (adminId: string, userId: string) => {
     try {
+      setIsProcessing(true);
+      
       // Check if assignment already exists
-      const { data: existingAssignment } = await supabase
+      const { data: existingAssignment, error: checkError } = await supabase
         .from('admin_assignments')
         .select('id')
         .eq('admin_id', adminId)
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('Error checking assignment:', checkError);
+        return;
+      }
 
       if (existingAssignment) {
         setIsAlreadyAssigned(true);
@@ -68,16 +81,27 @@ const InvitePage: React.FC = () => {
           title: "Already Assigned",
           description: `You are already assigned to admin ${adminEmail}`,
         });
+        // Redirect to dashboard after 2 seconds
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 2000);
       } else {
         // Create new assignment
-        const { error } = await supabase
+        const { error: insertError } = await supabase
           .from('admin_assignments')
           .insert({
             admin_id: adminId,
             user_id: userId
           });
 
-        if (!error) {
+        if (insertError) {
+          console.error('Error creating assignment:', insertError);
+          toast({
+            title: "Assignment Failed",
+            description: "Failed to assign you to the admin. Please try again.",
+            variant: "destructive"
+          });
+        } else {
           toast({
             title: "Success",
             description: `You have been assigned to admin ${adminEmail}`,
@@ -90,6 +114,13 @@ const InvitePage: React.FC = () => {
       }
     } catch (error) {
       console.error('Error handling assignment:', error);
+      toast({
+        title: "Error",
+        description: "An error occurred while processing your assignment.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -105,8 +136,10 @@ const InvitePage: React.FC = () => {
         const { error } = await signUp(email, password);
         if (error) throw error;
         
-        // Create assignment after successful signup
-        await createAssignment(adminId);
+        // Wait a moment for the user to be created in our users table
+        setTimeout(async () => {
+          await createAssignment(adminId);
+        }, 1000);
       } else {
         const { error } = await signIn(email, password);
         if (error) throw error;
@@ -131,12 +164,17 @@ const InvitePage: React.FC = () => {
       if (!currentUser) return;
 
       // Check if assignment already exists
-      const { data: existingAssignment } = await supabase
+      const { data: existingAssignment, error: checkError } = await supabase
         .from('admin_assignments')
         .select('id')
         .eq('admin_id', adminId)
         .eq('user_id', currentUser.id)
-        .single();
+        .maybeSingle();
+
+      if (checkError) {
+        console.error('Error checking assignment:', checkError);
+        return;
+      }
 
       if (!existingAssignment) {
         const { error } = await supabase
@@ -146,12 +184,23 @@ const InvitePage: React.FC = () => {
             user_id: currentUser.id
           });
 
-        if (error) throw error;
-
-        toast({
-          title: "Success",
-          description: `You have been assigned to admin ${adminEmail}`,
-        });
+        if (error) {
+          console.error('Error creating assignment:', error);
+          toast({
+            title: "Assignment Failed",
+            description: "Failed to assign you to the admin.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Success",
+            description: `You have been assigned to admin ${adminEmail}`,
+          });
+          // Redirect to dashboard after 2 seconds
+          setTimeout(() => {
+            navigate('/dashboard');
+          }, 2000);
+        }
       }
     } catch (error) {
       console.error('Error creating assignment:', error);
@@ -188,6 +237,7 @@ const InvitePage: React.FC = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="text-center">
+              <p className="text-sm text-slate-500 mb-4">Redirecting to dashboard...</p>
               <Button onClick={() => navigate('/dashboard')} className="w-full">
                 Go to Dashboard
               </Button>
@@ -198,8 +248,31 @@ const InvitePage: React.FC = () => {
     );
   }
 
+  // If user is already signed in but assignment is being processed
+  if (user && isProcessing) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+        <div className="flex min-h-screen items-center justify-center p-4">
+          <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg">
+                <div className="h-8 w-8 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+              </div>
+              <CardTitle className="text-xl font-semibold text-slate-800">
+                Assignment in Progress
+              </CardTitle>
+              <CardDescription className="text-slate-600">
+                You are being assigned to admin {adminEmail}...
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   // If user is already signed in but not assigned yet
-  if (user && !isAlreadyAssigned) {
+  if (user && !isAlreadyAssigned && !isProcessing) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
         <div className="flex min-h-screen items-center justify-center p-4">
@@ -209,10 +282,10 @@ const InvitePage: React.FC = () => {
                 <UserCheck className="h-8 w-8 text-white" />
               </div>
               <CardTitle className="text-xl font-semibold text-slate-800">
-                Assignment in Progress
+                Processing Assignment
               </CardTitle>
               <CardDescription className="text-slate-600">
-                You are being assigned to admin {adminEmail}...
+                Please wait while we assign you to admin {adminEmail}...
               </CardDescription>
             </CardHeader>
           </Card>
