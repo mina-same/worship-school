@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/ui/use-toast';
-import { EyeOff, Lock } from 'lucide-react';
+import { EyeOff, Lock, Download, FileText, Image as ImageIcon } from 'lucide-react';
 
 const SubmissionDetail: React.FC = () => {
   const { submissionId } = useParams();
@@ -154,6 +153,88 @@ const SubmissionDetail: React.FC = () => {
     return userRole === 'super_admin' || adminAccessLevel === 'full' || !field.sensitive;
   };
 
+  const isFileOrImage = (fieldType: string) => {
+    return fieldType === 'file' || fieldType === 'image';
+  };
+
+  const renderFileOrImageField = (field: any, value: any) => {
+    if (!value) return null;
+
+    const isImage = field.type === 'image';
+    const fileName = typeof value === 'string' ? value : value.name || 'Unknown file';
+
+    return (
+      <div className="mt-2 p-3 bg-slate-50 rounded border">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {isImage ? (
+              <ImageIcon className="h-4 w-4 text-blue-500" />
+            ) : (
+              <FileText className="h-4 w-4 text-gray-500" />
+            )}
+            <span className="text-sm font-medium">{fileName}</span>
+          </div>
+          
+          <div className="flex gap-2">
+            {isImage && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  // Create a mock image URL for demonstration
+                  // In a real app, this would be the actual file URL from storage
+                  const imageUrl = `https://via.placeholder.com/600x400?text=${encodeURIComponent(fileName)}`;
+                  window.open(imageUrl, '_blank');
+                }}
+                className="flex items-center gap-1"
+              >
+                <ImageIcon className="h-3 w-3" />
+                View
+              </Button>
+            )}
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                // Create a downloadable blob for demonstration
+                const blob = new Blob([`File: ${fileName}`], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                toast({
+                  title: "Download Started",
+                  description: `Downloading ${fileName}`,
+                });
+              }}
+              className="flex items-center gap-1"
+            >
+              <Download className="h-3 w-3" />
+              Download
+            </Button>
+          </div>
+        </div>
+        
+        {isImage && (
+          <div className="mt-2">
+            <img 
+              src={`https://via.placeholder.com/300x200?text=${encodeURIComponent(fileName)}`}
+              alt={fileName}
+              className="max-w-full h-auto rounded border"
+              style={{ maxHeight: '200px' }}
+            />
+          </div>
+        )}
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -252,7 +333,14 @@ const SubmissionDetail: React.FC = () => {
                         canView ? (
                           <div className="p-2 bg-slate-50 rounded border">
                             <span className="text-sm font-medium">Answer: </span>
-                            {value}
+                            {isFileOrImage(field.type) ? (
+                              <div>
+                                <div className="text-sm mb-2">{value}</div>
+                                {renderFileOrImageField(field, value)}
+                              </div>
+                            ) : (
+                              value
+                            )}
                           </div>
                         ) : (
                           <div className="p-2 bg-slate-50 rounded border">
