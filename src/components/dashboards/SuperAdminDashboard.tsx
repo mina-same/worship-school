@@ -17,6 +17,7 @@ const SuperAdminDashboard: React.FC = () => {
   });
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [formTemplates, setFormTemplates] = useState<any[]>([]);
+  const [admins, setAdmins] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
@@ -28,6 +29,12 @@ const SuperAdminDashboard: React.FC = () => {
       
       const totalUsers = users?.filter(u => u.role === 'user').length || 0;
       const totalAdmins = users?.filter(u => u.role === 'admin').length || 0;
+
+      // Fetch admins for filter
+      const { data: adminsData } = await supabase
+        .from('users')
+        .select('id, email')
+        .eq('role', 'admin');
 
       // Fetch submissions count (excluding admin/super_admin submissions)
       const { data: submissionsData } = await supabase
@@ -61,6 +68,7 @@ const SuperAdminDashboard: React.FC = () => {
 
       setSubmissions(submissionsData || []);
       setFormTemplates(forms || []);
+      setAdmins(adminsData || []);
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -226,7 +234,7 @@ const SuperAdminDashboard: React.FC = () => {
       </div>
 
       {/* Submissions Table */}
-      <SubmissionsTable submissions={submissions} onRefresh={fetchData} />
+      <SubmissionsTable submissions={submissions} admins={admins} onRefresh={fetchData} />
     </div>
   );
 };

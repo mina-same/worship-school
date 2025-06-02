@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -182,7 +183,6 @@ const SubmissionDetail: React.FC = () => {
                 size="sm"
                 onClick={() => {
                   // Create a mock image URL for demonstration
-                  // In a real app, this would be the actual file URL from storage
                   const imageUrl = `https://via.placeholder.com/600x400?text=${encodeURIComponent(fileName)}`;
                   window.open(imageUrl, '_blank');
                 }}
@@ -197,16 +197,58 @@ const SubmissionDetail: React.FC = () => {
               variant="outline"
               size="sm"
               onClick={() => {
-                // Create a downloadable blob for demonstration
-                const blob = new Blob([`File: ${fileName}`], { type: 'text/plain' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = fileName;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
+                if (isImage) {
+                  // For images, create a canvas and download as image
+                  const canvas = document.createElement('canvas');
+                  const ctx = canvas.getContext('2d');
+                  const img = new Image();
+                  
+                  img.crossOrigin = 'anonymous';
+                  img.onload = () => {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx?.drawImage(img, 0, 0);
+                    
+                    canvas.toBlob((blob) => {
+                      if (blob) {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = fileName.includes('.') ? fileName : `${fileName}.png`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                      }
+                    }, 'image/png');
+                  };
+                  
+                  img.onerror = () => {
+                    // Fallback: download as text file with image info
+                    const blob = new Blob([`Image file: ${fileName}\nNote: This is a placeholder. In a real application, this would be the actual image file.`], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `${fileName.replace(/\.[^/.]+$/, "")}_info.txt`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                  };
+                  
+                  img.src = `https://via.placeholder.com/600x400?text=${encodeURIComponent(fileName)}`;
+                } else {
+                  // For other files, create a text file with file info
+                  const blob = new Blob([`File: ${fileName}\nNote: This is a placeholder. In a real application, this would be the actual file content.`], { type: 'text/plain' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = fileName.includes('.') ? fileName : `${fileName}.txt`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                }
                 
                 toast({
                   title: "Download Started",

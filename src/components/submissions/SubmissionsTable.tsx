@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -25,7 +24,8 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  XCircle
+  XCircle,
+  Shield
 } from 'lucide-react';
 
 interface Submission {
@@ -50,16 +50,23 @@ interface Submission {
   }>;
 }
 
+interface Admin {
+  id: string;
+  email: string;
+}
+
 interface SubmissionsTableProps {
   submissions: Submission[];
+  admins?: Admin[];
   onRefresh: () => void;
 }
 
-const SubmissionsTable: React.FC<SubmissionsTableProps> = ({ submissions, onRefresh }) => {
-  const { user } = useAuth();
+const SubmissionsTable: React.FC<SubmissionsTableProps> = ({ submissions, admins = [], onRefresh }) => {
+  const { user, userRole } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [formFilter, setFormFilter] = useState('all');
+  const [adminFilter, setAdminFilter] = useState('all');
   const [newNote, setNewNote] = useState('');
   const [selectedSubmission, setSelectedSubmission] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -70,9 +77,55 @@ const SubmissionsTable: React.FC<SubmissionsTableProps> = ({ submissions, onRefr
     return names.sort();
   }, [submissions]);
 
+  // Get admin assignments for filtering
+  const [adminAssignments, setAdminAssignments] = useState<any[]>([]);
+
+  React.useEffect(() => {
+    if (userRole === 'super_admin' && admins.length > 0) {
+      const fetchAdminAssignments = async () => {
+        try {
+          const { data } = await supabase
+            .from('admin_assignments')
+            .select(`
+              admin_id,
+              user_id,
+              user:users!admin_assignments_user_id_fkey(email)
+            `);
+          setAdminAssignments(data || []);
+        } catch (error) {
+          console.error('Error fetching admin assignments:', error);
+        }
+      };
+      fetchAdminAssignments();
+    }
+  }, [userRole, admins]);
+
+  // Filter submissions based on admin assignment
+  const getSubmissionsForAdmin = (adminId: string) => {
+    const assignedUserIds = adminAssignments
+      .filter(assignment => assignment.admin_id === adminId)
+      .map(assignment => assignment.user_id);
+    
+    return submissions.filter(submission => {
+      // Find user ID by email (since submission has user email)
+      const userEmail = submission.user.email;
+      const matchingAssignment = adminAssignments.find(
+        assignment => assignment.user?.email === userEmail
+      );
+      return matchingAssignment && assignedUserIds.includes(matchingAssignment.user_id);
+    });
+  };
+
   // Filter submissions
   const filteredSubmissions = useMemo(() => {
-    return submissions.filter(submission => {
+    let filteredData = submissions;
+
+    // Filter by admin assignment if super admin and admin filter is selected
+    if (userRole === 'super_admin' && adminFilter !== 'all') {
+      filteredData = getSubmissionsForAdmin(adminFilter);
+    }
+
+    return filteredData.filter(submission => {
       const matchesSearch = 
         submission.user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         submission.form_template.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -82,7 +135,7 @@ const SubmissionsTable: React.FC<SubmissionsTableProps> = ({ submissions, onRefr
       
       return matchesSearch && matchesStatus && matchesForm;
     });
-  }, [submissions, searchTerm, statusFilter, formFilter]);
+  }, [submissions, searchTerm, statusFilter, formFilter, adminFilter, userRole, adminAssignments]);
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -192,6 +245,23 @@ const SubmissionsTable: React.FC<SubmissionsTableProps> = ({ submissions, onRefr
                 ))}
               </SelectContent>
             </Select>
+
+            {userRole === 'super_admin' && admins.length > 0 && (
+              <Select value={adminFilter} onValueChange={setAdminFilter}>
+                <SelectTrigger className="w-full sm:w-48">
+                  <Shield className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Admin" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Admins</SelectItem>
+                  {admins.map(admin => (
+                    <SelectItem key={admin.id} value={admin.id}>
+                      {admin.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </div>
       </CardHeader>
