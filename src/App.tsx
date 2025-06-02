@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Route, Routes } from 'react-router-dom';
 import Index from '@/pages/Index';
@@ -26,6 +27,11 @@ function App() {
         </ProtectedRoute>
       } />
       <Route path="/form/:templateId" element={
+        <ProtectedRoute>
+          <DynamicForm />
+        </ProtectedRoute>
+      } />
+      <Route path="/form/:templateId/:submissionId" element={
         <ProtectedRoute>
           <DynamicForm />
         </ProtectedRoute>
