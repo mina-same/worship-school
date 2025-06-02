@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -51,9 +50,20 @@ const DynamicForm: React.FC = () => {
             .from('submissions')
             .select('*')
             .eq('id', submissionId)
+            .eq('user_id', user?.id) // Ensure user can only access their own submissions
             .single();
 
-          if (submissionError) throw submissionError;
+          if (submissionError) {
+            console.error('Error fetching submission:', submissionError);
+            toast({
+              title: "Error",
+              description: "Cannot access this submission",
+              variant: "destructive"
+            });
+            navigate('/dashboard');
+            return;
+          }
+          
           setSubmission(submissionData);
           
           // Set form data from submission
@@ -72,9 +82,11 @@ const DynamicForm: React.FC = () => {
             .select('*')
             .eq('user_id', user?.id)
             .eq('form_template_id', templateId)
-            .single();
+            .maybeSingle();
 
-          if (!existingError && existingSubmission) {
+          if (existingError) {
+            console.error('Error checking existing submission:', existingError);
+          } else if (existingSubmission) {
             // Redirect to the existing submission
             navigate(`/form/${templateId}/${existingSubmission.id}`);
             return;
@@ -125,7 +137,8 @@ const DynamicForm: React.FC = () => {
             status: status,
             last_updated: new Date().toISOString(),
           })
-          .eq('id', submission.id);
+          .eq('id', submission.id)
+          .eq('user_id', user.id); // Ensure user can only update their own submissions
 
         if (error) throw error;
       } 
@@ -146,6 +159,10 @@ const DynamicForm: React.FC = () => {
         
         if (data && data[0]) {
           setSubmission(data[0]);
+          // Update URL to include submission ID for future navigation
+          if (status === 'in_progress') {
+            navigate(`/form/${templateId}/${data[0].id}`, { replace: true });
+          }
         }
       }
 

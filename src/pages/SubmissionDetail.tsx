@@ -228,6 +228,7 @@ const SubmissionDetail: React.FC = () => {
                 formTemplate.fields.map((field: any) => {
                   const value = submission.form_data?.[field.id];
                   const canView = canViewSensitiveField(field);
+                  const hasAnswer = value !== undefined && value !== '';
                   
                   return (
                     <div key={field.id} className="mb-4">
@@ -241,14 +242,29 @@ const SubmissionDetail: React.FC = () => {
                         )}
                       </div>
                       
-                      {canView ? (
-                        <div className={`${field.sensitive && adminAccessLevel === 'partial' ? 'opacity-50' : ''}`}>
-                          {value !== undefined && value !== '' ? value : 'Not provided'}
-                        </div>
+                      {/* Always show the question */}
+                      <div className="text-sm text-slate-600 mb-2">
+                        Question: {field.label}
+                      </div>
+                      
+                      {/* Show answer based on permissions */}
+                      {hasAnswer ? (
+                        canView ? (
+                          <div className="p-2 bg-slate-50 rounded border">
+                            <span className="text-sm font-medium">Answer: </span>
+                            {value}
+                          </div>
+                        ) : (
+                          <div className="p-2 bg-slate-50 rounded border">
+                            <div className="flex items-center gap-2 text-slate-500 italic">
+                              <Lock className="h-4 w-4" />
+                              <span className="text-sm">Answer provided - Content restricted due to limited access permissions</span>
+                            </div>
+                          </div>
+                        )
                       ) : (
-                        <div className="flex items-center gap-2 text-slate-500 italic">
-                          <Lock className="h-4 w-4" />
-                          Question answered - Content restricted due to partial access
+                        <div className="p-2 bg-slate-50 rounded border text-slate-500 text-sm">
+                          No answer provided
                         </div>
                       )}
                     </div>

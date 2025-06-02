@@ -54,6 +54,9 @@ const AdminDashboard: React.FC = () => {
 
           if (submissionsError) throw submissionsError;
           setSubmissions(submissionsData || []);
+        } else {
+          // No assignments, so no submissions to show
+          setSubmissions([]);
         }
       }
     } catch (error) {
@@ -236,7 +239,7 @@ const AdminDashboard: React.FC = () => {
         </Card>
       </div>
 
-      {/* Submissions Table */}
+      {/* Submissions Table - only show submissions from assigned users */}
       <SubmissionsTable submissions={submissions} onRefresh={fetchAssignments} />
     </div>
   );
