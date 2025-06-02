@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -263,49 +262,6 @@ const AdminDashboard: React.FC = () => {
           </CardContent>
         </Card>
       </div>
-
-      {/* Assigned Users Section */}
-      {assignments.length > 0 && (
-        <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
-          <CardHeader className="border-b border-slate-100">
-            <CardTitle className="flex items-center gap-3 text-xl font-semibold text-slate-800">
-              <div className="h-8 w-8 rounded-lg bg-blue-100 flex items-center justify-center">
-                <Users className="h-4 w-4 text-blue-600" />
-              </div>
-              Assigned Users ({assignments.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {assignments.map((assignment) => (
-                <div
-                  key={assignment.id}
-                  className="group rounded-xl border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all duration-200 hover:border-blue-300"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white font-semibold text-sm">
-                      {assignment.user?.email?.substring(0, 2).toUpperCase() || 'U'}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-slate-800 truncate group-hover:text-blue-600 transition-colors">
-                        {assignment.user?.email || 'Unknown User'}
-                      </h3>
-                      <p className="text-sm text-slate-500">
-                        Assigned {new Date(assignment.created_at).toLocaleDateString()}
-                      </p>
-                      <div className="mt-2">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          Active
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Submissions Table */}
       <SubmissionsTable submissions={submissions} onRefresh={fetchAssignments} />
