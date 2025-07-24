@@ -20,9 +20,29 @@ const DynamicForm: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   
-  const [formTemplate, setFormTemplate] = useState<any>(null);
-  const [formData, setFormData] = useState<Record<string, any>>({});
-  const [submission, setSubmission] = useState<any>(null);
+  // Define proper types for form template and submission
+  type FormTemplate = {
+    id: string;
+    name: string;
+    description?: string;
+    fields: FormField[];
+    created_at?: string;
+    updated_at?: string;
+  };
+
+  type Submission = {
+    id: string;
+    form_id: string;
+    user_id: string;
+    form_data: Record<string, unknown>;
+    status: 'draft' | 'submitted' | 'completed' | 'rejected';
+    created_at?: string;
+    updated_at?: string;
+  };
+
+  const [formTemplate, setFormTemplate] = useState<FormTemplate | null>(null);
+  const [formData, setFormData] = useState<Record<string, unknown>>({});
+  const [submission, setSubmission] = useState<Submission | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -68,7 +88,7 @@ const DynamicForm: React.FC = () => {
           
           // Set form data from submission
           if (submissionData.form_data && typeof submissionData.form_data === 'object') {
-            setFormData(submissionData.form_data as Record<string, any>);
+            setFormData(submissionData.form_data as Record<string, unknown>);
           }
           
           // For completed forms, allow editing but show different UI
@@ -193,7 +213,7 @@ const DynamicForm: React.FC = () => {
     }
   };
 
-  const handleFieldChange = (fieldId: string, value: any) => {
+  const handleFieldChange = (fieldId: string, value: unknown) => {
     setFormData(prev => ({
       ...prev,
       [fieldId]: value
