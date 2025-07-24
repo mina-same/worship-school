@@ -59,26 +59,26 @@ const Login: React.FC = () => {
               <img src="/lovable-uploads/ba046b16-2bfb-41f1-ba19-d00e99b4fd9f.png" alt="مدرسة العلية" className="h-16 w-16 object-contain" />
             </div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-orange-600 bg-clip-text text-transparent">
-              مدرسة العلية
+              The School of Worship
             </h1>
-            <p className="mt-2 text-slate-600">مرحباً بك في رحلة التعلم</p>
+            <p className="mt-2 text-slate-600">Welcome to your learning journey</p>
           </div>
 
           <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm">
             <CardHeader className="text-center pb-2">
               <CardTitle className="text-xl font-semibold text-slate-800">Access Your Account</CardTitle>
               <CardDescription className="text-slate-600">
-                Sign in to continue your worship education
+                Sign in to continue your learning
               </CardDescription>
             </CardHeader>
             
             <Tabs defaultValue="signin" className="w-full">
               <TabsList className="grid w-full grid-cols-2 mx-6 mb-6">
                 <TabsTrigger value="signin" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  تسجيل الدخول
+                  Sign In
                 </TabsTrigger>
                 <TabsTrigger value="signup" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-                  إنشاء حساب
+                  Sign Up
                 </TabsTrigger>
               </TabsList>
               
@@ -133,10 +133,10 @@ const Login: React.FC = () => {
                       {loading ? (
                         <div className="flex items-center">
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          جاري تسجيل الدخول...
+                          Signing in...
                         </div>
                       ) : (
-                        'تسجيل الدخول'
+                        'Sign In'
                       )}
                     </Button>
                     
@@ -186,13 +186,13 @@ const Login: React.FC = () => {
                 <form onSubmit={handleSignUp}>
                   <CardContent className="space-y-6 px-6">
                     <div className="space-y-2">
-                      <Label htmlFor="signup-name" className="text-slate-700 font-medium">الاسم الكامل</Label>
+                      <Label htmlFor="signup-name" className="text-slate-700 font-medium">Full Name</Label>
                       <div className="relative">
                         <GraduationCap className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                         <Input 
                           id="signup-name" 
                           type="text" 
-                          placeholder="أدخل اسمك الكامل"
+                          placeholder="Enter your full name"
                           className="pl-10 h-12 border-slate-200 focus:border-primary focus:ring-primary"
                           value={name}
                           onChange={(e) => setName(e.target.value)}
@@ -201,13 +201,13 @@ const Login: React.FC = () => {
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="signup-email" className="text-slate-700 font-medium">البريد الإلكتروني</Label>
+                      <Label htmlFor="signup-email" className="text-slate-700 font-medium">Email Address</Label>
                       <div className="relative">
                         <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                         <Input 
                           id="signup-email" 
                           type="email" 
-                          placeholder="أدخل بريدك الإلكتروني"
+                          placeholder="Enter your email"
                           className="pl-10 h-12 border-slate-200 focus:border-primary focus:ring-primary"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
@@ -248,10 +248,10 @@ const Login: React.FC = () => {
                       {loading ? (
                         <div className="flex items-center">
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          جاري إنشاء الحساب...
+                          Creating account...
                         </div>
                       ) : (
-                        'إنشاء حساب جديد'
+                        'Create Account'
                       )}
                     </Button>
                     

@@ -141,7 +141,7 @@ const AdminDashboard: React.FC = () => {
         <Button asChild variant="outline" className="flex items-center gap-2">
           <Link to="/profile">
             <Settings className="h-4 w-4" />
-            الملف الشخصي
+            Profile Settings
           </Link>
         </Button>
       </div>

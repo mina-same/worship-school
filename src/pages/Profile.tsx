@@ -78,18 +78,18 @@ const Profile: React.FC = () => {
   return (
     <div className="container mx-auto p-6 max-w-2xl">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-foreground">الملف الشخصي</h1>
-        <p className="text-muted-foreground mt-2">إدارة معلومات حسابك الشخصي</p>
+        <h1 className="text-3xl font-bold text-foreground">Profile Settings</h1>
+        <p className="text-muted-foreground mt-2">Manage your account information and preferences</p>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <User className="h-5 w-5 text-primary" />
-            معلومات الحساب
+            Account Information
           </CardTitle>
           <CardDescription>
-            يمكنك تحديث صورتك الشخصية واسمك وبريدك الإلكتروني
+            Update your profile picture, name and email address
           </CardDescription>
         </CardHeader>
         
@@ -123,7 +123,7 @@ const Profile: React.FC = () => {
               </label>
             </div>
             {uploadingAvatar && (
-              <p className="text-sm text-muted-foreground">جاري رفع الصورة...</p>
+              <p className="text-sm text-muted-foreground">Uploading image...</p>
             )}
           </div>
 
@@ -131,14 +131,14 @@ const Profile: React.FC = () => {
           <form onSubmit={handleProfileUpdate} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="display-name" className="text-slate-700 font-medium">
-                الاسم المعروض
+                Display Name
               </Label>
               <div className="relative">
                 <User className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                 <Input 
                   id="display-name"
                   type="text" 
-                  placeholder="أدخل اسمك المعروض"
+                  placeholder="Enter your display name"
                   className="pl-10 h-12 border-slate-200 focus:border-primary focus:ring-primary"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
@@ -154,12 +154,12 @@ const Profile: React.FC = () => {
               {loading ? (
                 <div className="flex items-center">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  جاري التحديث...
+                  Updating...
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
                   <Save className="h-4 w-4" />
-                  حفظ الملف الشخصي
+                  Save Profile
                 </div>
               )}
             </Button>
@@ -169,7 +169,7 @@ const Profile: React.FC = () => {
           <form onSubmit={handleEmailUpdate} className="space-y-4 pt-4 border-t border-slate-200">
             <div className="space-y-2">
               <Label htmlFor="current-email" className="text-slate-700 font-medium">
-                البريد الإلكتروني الحالي
+                Current Email
               </Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
@@ -185,14 +185,14 @@ const Profile: React.FC = () => {
 
             <div className="space-y-2">
               <Label htmlFor="new-email" className="text-slate-700 font-medium">
-                البريد الإلكتروني الجديد
+                New Email
               </Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                 <Input 
                   id="new-email"
                   type="email" 
-                  placeholder="أدخل البريد الإلكتروني الجديد"
+                  placeholder="Enter new email address"
                   className="pl-10 h-12 border-slate-200 focus:border-primary focus:ring-primary"
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
@@ -209,23 +209,23 @@ const Profile: React.FC = () => {
               {loading ? (
                 <div className="flex items-center">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  جاري التحديث...
+                  Updating...
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
                   <Save className="h-4 w-4" />
-                  تحديث البريد الإلكتروني
+                  Update Email
                 </div>
               )}
             </Button>
           </form>
 
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h4 className="font-medium text-blue-900 mb-2">ملاحظات مهمة:</h4>
+            <h4 className="font-medium text-blue-900 mb-2">Important Notes:</h4>
             <ul className="text-sm text-blue-800 space-y-1">
-              <li>• يمكنك رفع صورة شخصية بحد أقصى 5 ميجابايت</li>
-              <li>• عند تحديث البريد الإلكتروني، ستحتاج إلى تأكيد التغيير</li>
-              <li>• سيتم إرسال روابط التأكيد إلى البريد القديم والجديد</li>
+              <li>• You can upload profile images up to 5MB</li>
+              <li>• When updating email, you'll need to confirm the change</li>
+              <li>• Confirmation links will be sent to both old and new email</li>
             </ul>
           </div>
         </CardContent>

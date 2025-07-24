@@ -9,7 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/ui/use-toast';
-import { EyeOff, Lock, Download, FileText, Image as ImageIcon } from 'lucide-react';
+import { EyeOff, Lock, Download, FileText, Image as ImageIcon, Check, X } from 'lucide-react';
 
 const SubmissionDetail: React.FC = () => {
   const { submissionId } = useParams();
@@ -277,6 +277,51 @@ const SubmissionDetail: React.FC = () => {
     );
   };
 
+  const renderValue = (value: any, fieldType?: string) => {
+    // Handle boolean values with icons
+    if (typeof value === 'boolean') {
+      return (
+        <div className="flex items-center gap-2">
+          {value ? (
+            <>
+              <Check className="h-4 w-4 text-green-600" />
+              <span className="text-green-600 font-medium">True</span>
+            </>
+          ) : (
+            <>
+              <X className="h-4 w-4 text-red-600" />
+              <span className="text-red-600 font-medium">False</span>
+            </>
+          )}
+        </div>
+      );
+    }
+    
+    // Handle string representations of booleans
+    if (typeof value === 'string') {
+      const lowerValue = value.toLowerCase();
+      if (lowerValue === 'true' || lowerValue === 'yes') {
+        return (
+          <div className="flex items-center gap-2">
+            <Check className="h-4 w-4 text-green-600" />
+            <span className="text-green-600 font-medium">True</span>
+          </div>
+        );
+      }
+      if (lowerValue === 'false' || lowerValue === 'no') {
+        return (
+          <div className="flex items-center gap-2">
+            <X className="h-4 w-4 text-red-600" />
+            <span className="text-red-600 font-medium">False</span>
+          </div>
+        );
+      }
+    }
+    
+    // Default: return the value as-is
+    return value;
+  };
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -381,7 +426,7 @@ const SubmissionDetail: React.FC = () => {
                                 {renderFileOrImageField(field, value)}
                               </div>
                             ) : (
-                              value
+                              renderValue(value, field.type)
                             )}
                           </div>
                         ) : (
