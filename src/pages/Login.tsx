@@ -13,6 +13,7 @@ const Login: React.FC = () => {
   const { signIn, signUp, signInWithGoogle } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   
@@ -54,13 +55,13 @@ const Login: React.FC = () => {
         <div className="w-full max-w-md">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="mx-auto mb-4 h-16 w-16 rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center shadow-lg">
-              <GraduationCap className="h-8 w-8 text-white" />
+            <div className="mx-auto mb-4 h-20 w-20 rounded-2xl bg-white flex items-center justify-center shadow-lg">
+              <img src="/lovable-uploads/ba046b16-2bfb-41f1-ba19-d00e99b4fd9f.png" alt="مدرسة العلية" className="h-16 w-16 object-contain" />
             </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-              The School of Worship
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-orange-600 bg-clip-text text-transparent">
+              مدرسة العلية
             </h1>
-            <p className="mt-2 text-slate-600">Welcome back to your learning journey</p>
+            <p className="mt-2 text-slate-600">مرحباً بك في رحلة التعلم</p>
           </div>
 
           <Card className="border-0 shadow-2xl bg-white/80 backdrop-blur-sm">
@@ -73,11 +74,11 @@ const Login: React.FC = () => {
             
             <Tabs defaultValue="signin" className="w-full">
               <TabsList className="grid w-full grid-cols-2 mx-6 mb-6">
-                <TabsTrigger value="signin" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white">
-                  Sign In
+                <TabsTrigger value="signin" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  تسجيل الدخول
                 </TabsTrigger>
-                <TabsTrigger value="signup" className="data-[state=active]:bg-indigo-600 data-[state=active]:text-white">
-                  Sign Up
+                <TabsTrigger value="signup" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                  إنشاء حساب
                 </TabsTrigger>
               </TabsList>
               
@@ -126,16 +127,16 @@ const Login: React.FC = () => {
                   <CardFooter className="flex flex-col space-y-4 px-6 pb-6">
                     <Button 
                       type="submit" 
-                      className="w-full h-12 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium shadow-lg"
+                      className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-lg"
                       disabled={loading}
                     >
                       {loading ? (
                         <div className="flex items-center">
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          Signing in...
+                          جاري تسجيل الدخول...
                         </div>
                       ) : (
-                        'Sign In'
+                        'تسجيل الدخول'
                       )}
                     </Button>
                     
@@ -185,14 +186,29 @@ const Login: React.FC = () => {
                 <form onSubmit={handleSignUp}>
                   <CardContent className="space-y-6 px-6">
                     <div className="space-y-2">
-                      <Label htmlFor="signup-email" className="text-slate-700 font-medium">Email Address</Label>
+                      <Label htmlFor="signup-name" className="text-slate-700 font-medium">الاسم الكامل</Label>
+                      <div className="relative">
+                        <GraduationCap className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
+                        <Input 
+                          id="signup-name" 
+                          type="text" 
+                          placeholder="أدخل اسمك الكامل"
+                          className="pl-10 h-12 border-slate-200 focus:border-primary focus:ring-primary"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="signup-email" className="text-slate-700 font-medium">البريد الإلكتروني</Label>
                       <div className="relative">
                         <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                         <Input 
                           id="signup-email" 
                           type="email" 
-                          placeholder="Enter your email"
-                          className="pl-10 h-12 border-slate-200 focus:border-indigo-500 focus:ring-indigo-500"
+                          placeholder="أدخل بريدك الإلكتروني"
+                          className="pl-10 h-12 border-slate-200 focus:border-primary focus:ring-primary"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
                           required
@@ -226,16 +242,16 @@ const Login: React.FC = () => {
                   <CardFooter className="flex flex-col space-y-4 px-6 pb-6">
                     <Button 
                       type="submit" 
-                      className="w-full h-12 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium shadow-lg"
+                      className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-lg"
                       disabled={loading}
                     >
                       {loading ? (
                         <div className="flex items-center">
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          Creating account...
+                          جاري إنشاء الحساب...
                         </div>
                       ) : (
-                        'Create Account'
+                        'إنشاء حساب جديد'
                       )}
                     </Button>
                     
