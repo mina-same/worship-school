@@ -73,7 +73,7 @@ const Login: React.FC = () => {
             </CardHeader>
             
             <Tabs defaultValue="signin" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mx-6 mb-6">
+              <TabsList className="grid w-full grid-cols-2 mb-6">
                 <TabsTrigger value="signin" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                   Sign In
                 </TabsTrigger>

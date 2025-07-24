@@ -8,25 +8,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User, Mail, Save, Camera } from 'lucide-react';
 
 const Profile: React.FC = () => {
-  const { user, userProfile, updateEmail, updateProfile, uploadAvatar } = useAuth();
-  const [newEmail, setNewEmail] = useState(user?.email || '');
+  const { user, userProfile, updateProfile, uploadAvatar } = useAuth();
   const [displayName, setDisplayName] = useState(userProfile?.display_name || '');
   const [loading, setLoading] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-
-  const handleEmailUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newEmail === user?.email) {
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await updateEmail(newEmail);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,7 +74,7 @@ const Profile: React.FC = () => {
             Account Information
           </CardTitle>
           <CardDescription>
-            Update your profile picture, name and email address
+            Update your profile picture and display name
           </CardDescription>
         </CardHeader>
         
@@ -165,67 +150,32 @@ const Profile: React.FC = () => {
             </Button>
           </form>
 
-          {/* Email Update Form */}
-          <form onSubmit={handleEmailUpdate} className="space-y-4 pt-4 border-t border-slate-200">
+          {/* Email Information */}
+          <div className="pt-4 border-t border-slate-200">
             <div className="space-y-2">
-              <Label htmlFor="current-email" className="text-slate-700 font-medium">
-                Current Email
+              <Label htmlFor="email-display" className="text-slate-700 font-medium">
+                Email Address
               </Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
                 <Input 
-                  id="current-email"
+                  id="email-display"
                   type="email" 
                   value={user?.email || ''}
                   disabled
                   className="pl-10 h-12 bg-muted border-slate-200"
                 />
               </div>
+              <p className="text-xs text-muted-foreground mt-1">Contact an administrator if you need to update your email address.</p>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="new-email" className="text-slate-700 font-medium">
-                New Email
-              </Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                <Input 
-                  id="new-email"
-                  type="email" 
-                  placeholder="Enter new email address"
-                  className="pl-10 h-12 border-slate-200 focus:border-primary focus:ring-primary"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-
-            <Button 
-              type="submit" 
-              className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
-              disabled={loading || newEmail === user?.email || !newEmail}
-            >
-              {loading ? (
-                <div className="flex items-center">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Updating...
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Save className="h-4 w-4" />
-                  Update Email
-                </div>
-              )}
-            </Button>
-          </form>
+          </div>
 
           <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
             <h4 className="font-medium text-blue-900 mb-2">Important Notes:</h4>
             <ul className="text-sm text-blue-800 space-y-1">
               <li>• You can upload profile images up to 5MB</li>
-              <li>• When updating email, you'll need to confirm the change</li>
-              <li>• Confirmation links will be sent to both old and new email</li>
+              <li>• Profile changes are saved immediately</li>
+              <li>• Your display name will be visible to other users</li>
             </ul>
           </div>
         </CardContent>
