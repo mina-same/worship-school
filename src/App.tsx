@@ -10,6 +10,7 @@ import SubmissionDetail from '@/pages/SubmissionDetail';
 import AdminAssignments from '@/pages/AdminAssignments';
 import AdminUserManagement from '@/pages/AdminUserManagement';
 import SuperAdminUserManagement from '@/pages/SuperAdminUserManagement';
+import Profile from '@/pages/Profile';
 import NotFound from '@/pages/NotFound';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import InvitePage from '@/pages/InvitePage';
@@ -69,6 +70,11 @@ function App() {
       <Route path="/super-admin/forms" element={
         <ProtectedRoute>
           <SuperAdminForms />
+        </ProtectedRoute>
+      } />
+      <Route path="/profile" element={
+        <ProtectedRoute>
+          <Profile />
         </ProtectedRoute>
       } />
       <Route path="*" element={<NotFound />} />

@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, FileText, Shield, Activity, Settings, Edit } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import SubmissionsTable from '@/components/submissions/SubmissionsTable';
 import { useNavigate } from 'react-router-dom';
 
@@ -117,6 +118,15 @@ const SuperAdminDashboard: React.FC = () => {
 
   return (
     <div className="space-y-8">
+      {/* Profile Settings Link */}
+      <div className="flex justify-end">
+        <Button asChild variant="outline" className="flex items-center gap-2">
+          <Link to="/profile">
+            <Settings className="h-4 w-4" />
+            الملف الشخصي
+          </Link>
+        </Button>
+      </div>
       {/* Overview Cards */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-xl">

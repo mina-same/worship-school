@@ -12,6 +12,7 @@ type AuthContextType = {
   signInWithGoogle: () => Promise<void>;
   signUp: (email: string, password: string) => Promise<{ error?: any }>;
   signOut: () => Promise<void>;
+  updateEmail: (newEmail: string) => Promise<{ error?: any }>;
   userRole: 'user' | 'admin' | 'super_admin' | null;
 };
 
@@ -160,6 +161,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateEmail = async (newEmail: string) => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        email: newEmail
+      });
+
+      if (error) {
+        toast({
+          title: "Email update failed",
+          description: error.message,
+          variant: "destructive"
+        });
+        return { error };
+      }
+
+      toast({
+        title: "Email update initiated",
+        description: "Please check both your old and new email addresses for confirmation links.",
+      });
+      
+      return {};
+    } catch (error) {
+      console.error('Email update error:', error);
+      return { error };
+    }
+  };
+
   const signOut = async () => {
     try {
       const { error } = await supabase.auth.signOut();
@@ -182,6 +210,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signInWithGoogle,
         signUp,
         signOut,
+        updateEmail,
         userRole,
       }}
     >

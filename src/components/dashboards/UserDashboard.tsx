@@ -6,7 +6,7 @@ import { Tables } from '@/integrations/supabase/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Link } from 'react-router-dom';
-import { Clock, CheckCircle, PlayCircle, FileText, Calendar, UserCheck, Mail } from 'lucide-react';
+import { Clock, CheckCircle, PlayCircle, FileText, Calendar, UserCheck, Mail, Settings } from 'lucide-react';
 
 type UserDashboardProps = {
   formTemplates: Tables<'form_templates'>[];
@@ -102,6 +102,15 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ formTemplates }) => {
 
   return (
     <div className="space-y-8">
+      {/* Profile Settings Link */}
+      <div className="flex justify-end">
+        <Button asChild variant="outline" className="flex items-center gap-2">
+          <Link to="/profile">
+            <Settings className="h-4 w-4" />
+            الملف الشخصي
+          </Link>
+        </Button>
+      </div>
       {/* Admin Assignment Section */}
       {assignedAdmin && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
