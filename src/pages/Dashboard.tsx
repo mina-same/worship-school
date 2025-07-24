@@ -8,6 +8,7 @@ import { Tables } from '@/integrations/supabase/types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { LogOut, Settings, Users, FileText, Plus } from 'lucide-react';
+import UserAvatar from '@/components/UserAvatar';
 
 // Import components for different dashboards
 import UserDashboard from '@/components/dashboards/UserDashboard';
@@ -98,24 +99,15 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* User Info and Actions */}
+            {/* User Avatar and Info */}
             <div className="flex items-center space-x-4">
-              <div className="hidden md:block text-right">
-                <p className="text-sm font-medium text-slate-800">{user?.email}</p>
+              <UserAvatar />
+              
+              <div className="hidden md:block">
                 <Badge className={`text-xs ${getRoleBadgeColor()}`}>
                   {userRole?.replace('_', ' ').toUpperCase()}
                 </Badge>
               </div>
-              
-              <Avatar className="h-12 w-12 ring-2 ring-blue-500/20">
-                <AvatarImage 
-                  src={user?.user_metadata?.avatar_url} 
-                  alt={user?.email || 'User'} 
-                />
-                <AvatarFallback className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-semibold">
-                  {getUserInitials()}
-                </AvatarFallback>
-              </Avatar>
 
               <div className="flex items-center space-x-2">
                 {userRole === 'super_admin' && (
