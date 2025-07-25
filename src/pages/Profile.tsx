@@ -89,7 +89,7 @@ const Profile: React.FC = () => {
                   className="object-cover"
                 />
                 <AvatarFallback className="bg-primary/10 text-primary font-bold text-2xl">
-                  {userProfile?.avatar_url ? <User className="h-8 w-8" /> : getInitials()}
+                  {getInitials()}
                 </AvatarFallback>
               </Avatar>
               <label 
