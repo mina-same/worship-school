@@ -75,9 +75,9 @@ const AdminAssignedUsers: React.FC = () => {
           <p className="text-slate-600">Students under your supervision</p>
         </div>
       </CardHeader>
-      <CardContent className="p-6">
+      <CardContent className="p-3 sm:p-6">
         {assignments.length > 0 ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {assignments.map((assignment) => {
               const userSubmissions = getUserSubmissions(assignment.user_id);
               const completedSubmissions = userSubmissions.filter(s => s.status === 'completed').length;

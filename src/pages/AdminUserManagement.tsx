@@ -14,7 +14,7 @@ const AdminUserManagement: React.FC = () => {
       <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10" />
       
       <div className="relative z-10">
-        <div className="mx-auto max-w-7xl px-4 py-8">
+        <div className="mx-auto max-w-7xl px-3 sm:px-4 py-4 sm:py-8">
           <div className="mb-8">
             <Button 
               variant="outline" 
@@ -26,10 +26,10 @@ const AdminUserManagement: React.FC = () => {
             </Button>
             
             <div className="text-center">
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent mb-4">
+              <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent mb-4">
                 User Management
               </h1>
-              <p className="text-slate-600 text-lg max-w-2xl mx-auto">
+              <p className="text-slate-600 text-base sm:text-lg max-w-2xl mx-auto">
                 Manage your assigned users and invite new ones to your supervision
               </p>
             </div>

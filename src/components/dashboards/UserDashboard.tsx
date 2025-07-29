@@ -104,28 +104,38 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ formTemplates }) => {
     <div className="space-y-8">
       {/* Profile Settings Link */}
       <div className="flex justify-end">
-        <Button asChild variant="outline" className="flex items-center gap-2">
+        <Button variant="outline" size="sm" asChild>
           <Link to="/profile">
-            <Settings className="h-4 w-4" />
+            <Settings className="h-4 w-4 mr-2" />
             Profile Settings
           </Link>
         </Button>
       </div>
       {/* Admin Assignment Section */}
       {assignedAdmin && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-          <div className="flex items-center space-x-3 mb-2">
-            <UserCheck className="h-5 w-5 text-blue-600" />
-            <h3 className="text-lg font-semibold text-blue-800">Your Admin</h3>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Mail className="h-4 w-4 text-blue-600" />
-            <span className="text-blue-700 font-medium">{assignedAdmin}</span>
-          </div>
-          <p className="text-sm text-blue-600 mt-2">
-            This admin supervises your learning progress and can provide guidance.
-          </p>
-        </div>
+        <Card className="bg-white/70 backdrop-blur-sm border-white/20 shadow-md">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg font-medium flex items-center gap-2">
+              <Shield className="h-5 w-5 text-blue-500" />
+              Your Assigned Admin
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <Avatar>
+                <AvatarFallback className="bg-blue-100 text-blue-700">
+                  {assignedAdmin.substring(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="font-medium">{assignedAdmin}</p>
+                <p className="text-sm text-muted-foreground">
+                  Contact your admin if you have any questions about your forms
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Available Forms Section */}
@@ -135,7 +145,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ formTemplates }) => {
           <h2 className="text-2xl font-bold text-slate-800">Available Forms</h2>
         </div>
         
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {formTemplates.map((template) => {
             const existingSubmission = submissions.find(
               (s) => s.form_template_id === template.id
@@ -153,7 +163,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ formTemplates }) => {
                       <h3 className="font-semibold text-slate-800 text-lg mb-2 group-hover:text-blue-600 transition-colors">
                         {template.name}
                       </h3>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         {getStatusIcon(existingSubmission?.status || 'not_started')}
                         {getStatusBadge(existingSubmission?.status || 'not_started')}
                       </div>
@@ -163,7 +173,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ formTemplates }) => {
                   {/* Status Details */}
                   <div className="space-y-2 text-sm text-slate-600">
                     {existingSubmission ? (
-                      <div className="flex items-center space-x-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <Calendar className="h-4 w-4" />
                         <span>
                           Last updated: {new Date(existingSubmission.last_updated).toLocaleDateString()}
@@ -222,14 +232,14 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ formTemplates }) => {
                 key={submission.id}
                 className="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-md transition-shadow"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="flex items-center space-x-4">
                     {getStatusIcon(submission.status)}
                     <div>
                       <h3 className="font-semibold text-slate-800">
                         {submission.form_template?.name}
                       </h3>
-                      <div className="flex items-center space-x-4 mt-1">
+                      <div className="flex flex-wrap items-center space-x-4 mt-1">
                         {getStatusBadge(submission.status)}
                         <span className="text-sm text-slate-500">
                           {new Date(submission.last_updated).toLocaleDateString()}
@@ -238,7 +248,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({ formTemplates }) => {
                     </div>
                   </div>
                   
-                  <Button asChild variant="outline" size="sm">
+                  <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
                     <Link to={`/form/${submission.form_template_id}/${submission.id}`}>
                       {submission.status === 'completed' ? 'View' : 'Continue'}
                     </Link>

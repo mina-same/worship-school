@@ -128,7 +128,7 @@ const SuperAdminDashboard: React.FC = () => {
         </Button>
       </div>
       {/* Overview Cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-xl">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -191,7 +191,7 @@ const SuperAdminDashboard: React.FC = () => {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
           <CardContent className="p-6 text-center">
             <div className="h-12 w-12 mx-auto rounded-lg bg-purple-100 flex items-center justify-center mb-4">
@@ -201,7 +201,7 @@ const SuperAdminDashboard: React.FC = () => {
             <p className="text-slate-600 text-sm mb-4">Manage users, promote to admins, and handle assignments</p>
             <Button 
               onClick={() => navigate('/super-admin/user-management')}
-              className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+              className="w-full sm:w-auto bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
             >
               Manage Users
             </Button>
@@ -218,7 +218,7 @@ const SuperAdminDashboard: React.FC = () => {
             <Button 
               onClick={() => navigate('/form-builder')}
               variant="outline" 
-              className="w-full"
+              className="w-full sm:w-auto"
             >
               Build Forms
             </Button>
@@ -235,7 +235,7 @@ const SuperAdminDashboard: React.FC = () => {
             <Button 
               onClick={() => navigate('/super-admin/forms')}
               variant="outline" 
-              className="w-full"
+              className="w-full sm:w-auto"
             >
               Manage Forms
             </Button>

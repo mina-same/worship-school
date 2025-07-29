@@ -228,8 +228,8 @@ const UserManagement: React.FC = () => {
           </CardTitle>
           <p className="text-slate-600">Drag users to admins below to create assignments</p>
         </CardHeader>
-        <CardContent className="p-6">
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+        <CardContent className="p-3 sm:p-6">
+          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {users.map((user) => (
               <div
                 key={user.id}
@@ -237,12 +237,12 @@ const UserManagement: React.FC = () => {
                 onDragStart={() => handleDragStart(user)}
                 className="group cursor-move rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:shadow-md transition-all duration-200 hover:border-blue-300"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center text-white font-semibold text-sm">
                       {user.email.substring(0, 2).toUpperCase()}
                     </div>
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <h3 className="font-medium text-slate-800 truncate">
                         {user.email}
                       </h3>
@@ -253,7 +253,7 @@ const UserManagement: React.FC = () => {
                     onClick={() => promoteToAdmin(user.id)}
                     size="sm"
                     variant="outline"
-                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                    className="sm:opacity-0 group-hover:opacity-100 transition-opacity w-full sm:w-auto mt-2 sm:mt-0"
                   >
                     <Crown className="h-3 w-3 mr-1" />
                     Promote
@@ -276,7 +276,7 @@ const UserManagement: React.FC = () => {
           </CardTitle>
           <p className="text-slate-600">Drop zones for user assignments</p>
         </CardHeader>
-        <CardContent className="p-6">
+        <CardContent className="p-3 sm:p-6">
           <div className="space-y-6">
             {admins.map((admin) => {
               const adminAssignments = assignments.filter(a => a.admin_id === admin.id);
@@ -288,13 +288,13 @@ const UserManagement: React.FC = () => {
                   onDrop={(e) => handleDrop(e, admin.id)}
                   className="rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-6 hover:border-purple-400 hover:bg-purple-50 transition-all duration-200"
                 >
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
                     <div className="flex items-center gap-3">
                       <div className="h-12 w-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-semibold">
                         {admin.email.substring(0, 2).toUpperCase()}
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-slate-800">{admin.email}</h3>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold text-slate-800 truncate">{admin.email}</h3>
                         <Badge className="bg-purple-100 text-purple-800">Admin</Badge>
                       </div>
                     </div>
@@ -302,7 +302,7 @@ const UserManagement: React.FC = () => {
                       onClick={() => demoteToUser(admin.id)}
                       size="sm"
                       variant="outline"
-                      className="border-red-200 text-red-600 hover:bg-red-50"
+                      className="border-red-200 text-red-600 hover:bg-red-50 w-full sm:w-auto mt-2 sm:mt-0"
                     >
                       Demote
                     </Button>
@@ -311,21 +311,21 @@ const UserManagement: React.FC = () => {
                   <div className="space-y-2">
                     <h4 className="text-sm font-medium text-slate-700">Assigned Users ({adminAssignments.length})</h4>
                     {adminAssignments.length > 0 ? (
-                      <div className="grid gap-2 md:grid-cols-2">
+                      <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">
                         {adminAssignments.map((assignment) => (
                           <div
                             key={assignment.id}
-                            className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200"
+                            className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-white rounded-lg border border-slate-200 gap-2"
                           >
-                            <div className="flex items-center gap-2">
-                              <ArrowRight className="h-3 w-3 text-slate-400" />
-                              <span className="text-sm text-slate-700">{assignment.user.email}</span>
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <ArrowRight className="h-3 w-3 text-slate-400 flex-shrink-0" />
+                              <span className="text-sm text-slate-700 truncate">{assignment.user.email}</span>
                             </div>
                             <Button
                               onClick={() => deleteAssignment(assignment.id)}
                               size="icon"
                               variant="ghost"
-                              className="h-6 w-6 text-red-500 hover:text-red-700 hover:bg-red-50"
+                              className="h-6 w-6 text-red-500 hover:text-red-700 hover:bg-red-50 self-end sm:self-auto"
                             >
                               <Trash2 className="h-3 w-3" />
                             </Button>

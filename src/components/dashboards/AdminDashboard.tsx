@@ -146,7 +146,7 @@ const AdminDashboard: React.FC = () => {
         </Button>
       </div>
       {/* Enhanced Overview Cards */}
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
         <Card className="relative overflow-hidden border-0 bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-xl">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -206,7 +206,7 @@ const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Quick Stats Cards */}
-      <div className="grid gap-6 md:grid-cols-4">
+      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
         <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -253,19 +253,19 @@ const AdminDashboard: React.FC = () => {
 
         <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
           <CardContent className="p-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
               <div>
                 <p className="text-slate-600 text-sm font-medium">User Management</p>
                 <Button 
                   onClick={() => navigate('/admin/user-management')}
                   variant="outline"
                   size="sm"
-                  className="mt-2"
+                  className="mt-2 w-full sm:w-auto"
                 >
                   Manage Users
                 </Button>
               </div>
-              <div className="h-10 w-10 rounded-lg bg-indigo-100 flex items-center justify-center">
+              <div className="h-10 w-10 rounded-lg bg-indigo-100 flex items-center justify-center mt-4 sm:mt-0">
                 <Settings className="h-5 w-5 text-indigo-600" />
               </div>
             </div>

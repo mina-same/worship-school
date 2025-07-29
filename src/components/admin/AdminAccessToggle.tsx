@@ -59,8 +59,8 @@ export const AdminAccessToggle: React.FC<AdminAccessToggleProps> = ({
 
   return (
     <Card className="bg-white/80 backdrop-blur-sm border-white/20">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
+      <CardContent className="p-3 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center text-white font-medium">
               {adminEmail.substring(0, 2).toUpperCase()}

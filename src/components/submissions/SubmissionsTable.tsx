@@ -207,8 +207,8 @@ const SubmissionsTable: React.FC<SubmissionsTableProps> = ({ submissions, admins
             Submissions Management
           </CardTitle>
           
-          <div className="flex flex-col space-y-2 sm:flex-row sm:space-x-2 sm:space-y-0">
-            <div className="relative">
+          <div className="flex flex-col space-y-2 sm:flex-row sm:space-x-2 sm:space-y-0 w-full sm:w-auto">
+            <div className="relative w-full sm:w-auto">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Search submissions..."
@@ -218,50 +218,52 @@ const SubmissionsTable: React.FC<SubmissionsTableProps> = ({ submissions, admins
               />
             </div>
             
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-40">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="in_progress">In Progress</SelectItem>
-                <SelectItem value="submitted">Submitted</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="rejected">Rejected</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            <Select value={formFilter} onValueChange={setFormFilter}>
-              <SelectTrigger className="w-full sm:w-48">
-                <FileText className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Form" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Forms</SelectItem>
-                {formNames.map(name => (
-                  <SelectItem key={name} value={name}>{name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {userRole === 'super_admin' && admins.length > 0 && (
-              <Select value={adminFilter} onValueChange={setAdminFilter}>
-                <SelectTrigger className="w-full sm:w-48">
-                  <Shield className="h-4 w-4 mr-2" />
-                  <SelectValue placeholder="Admin" />
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full sm:w-40">
+                  <Filter className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Admins</SelectItem>
-                  {admins.map(admin => (
-                    <SelectItem key={admin.id} value={admin.id}>
-                      {admin.email}
-                    </SelectItem>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="submitted">Submitted</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              <Select value={formFilter} onValueChange={setFormFilter}>
+                <SelectTrigger className="w-full sm:w-48">
+                  <FileText className="h-4 w-4 mr-2" />
+                  <SelectValue placeholder="Form" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Forms</SelectItem>
+                  {formNames.map(name => (
+                    <SelectItem key={name} value={name}>{name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-            )}
+
+              {userRole === 'super_admin' && admins.length > 0 && (
+                <Select value={adminFilter} onValueChange={setAdminFilter}>
+                  <SelectTrigger className="w-full sm:w-48">
+                    <Shield className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Admin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Admins</SelectItem>
+                    {admins.map(admin => (
+                      <SelectItem key={admin.id} value={admin.id}>
+                        {admin.email}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
           </div>
         </div>
       </CardHeader>
@@ -269,134 +271,136 @@ const SubmissionsTable: React.FC<SubmissionsTableProps> = ({ submissions, admins
       <CardContent>
         <div className="rounded-lg border bg-white">
           <ScrollArea className="h-[600px] w-full">
-            <Table>
-              <TableHeader className="bg-slate-50/80 sticky top-0 z-10">
-                <TableRow>
-                  <TableHead className="font-semibold">User</TableHead>
-                  <TableHead className="font-semibold">Form</TableHead>
-                  <TableHead className="font-semibold">Status</TableHead>
-                  <TableHead className="font-semibold">Progress</TableHead>
-                  <TableHead className="font-semibold">Last Updated</TableHead>
-                  <TableHead className="font-semibold">Notes</TableHead>
-                  <TableHead className="font-semibold text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredSubmissions.map((submission) => {
-                  const progress = calculateProgress(submission);
-                  const notesCount = submission.admin_notes?.length || 0;
-                  
-                  return (
-                    <TableRow key={submission.id} className="hover:bg-slate-50/50">
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className="h-8 w-8 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center text-white text-xs font-medium">
-                            {submission.user.email.substring(0, 2).toUpperCase()}
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-slate-50/80 sticky top-0 z-10">
+                  <TableRow>
+                    <TableHead className="font-semibold whitespace-nowrap">User</TableHead>
+                    <TableHead className="font-semibold whitespace-nowrap">Form</TableHead>
+                    <TableHead className="font-semibold whitespace-nowrap">Status</TableHead>
+                    <TableHead className="font-semibold whitespace-nowrap">Progress</TableHead>
+                    <TableHead className="font-semibold whitespace-nowrap">Last Updated</TableHead>
+                    <TableHead className="font-semibold whitespace-nowrap">Notes</TableHead>
+                    <TableHead className="font-semibold text-right whitespace-nowrap">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredSubmissions.map((submission) => {
+                    const progress = calculateProgress(submission);
+                    const notesCount = submission.admin_notes?.length || 0;
+                    
+                    return (
+                      <TableRow key={submission.id} className="hover:bg-slate-50/50">
+                        <TableCell className="whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <div className="h-8 w-8 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center text-white text-xs font-medium">
+                              {submission.user.email.substring(0, 2).toUpperCase()}
+                            </div>
+                            <span className="font-medium">{submission.user.email}</span>
                           </div>
-                          <span className="font-medium">{submission.user.email}</span>
-                        </div>
-                      </TableCell>
-                      
-                      <TableCell>
-                        <div className="font-medium">{submission.form_template.name}</div>
-                      </TableCell>
-                      
-                      <TableCell>
-                        {getStatusBadge(submission.status)}
-                      </TableCell>
-                      
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-300"
-                              style={{ width: `${progress}%` }}
-                            />
+                        </TableCell>
+                        
+                        <TableCell className="whitespace-nowrap">
+                          <div className="font-medium">{submission.form_template.name}</div>
+                        </TableCell>
+                        
+                        <TableCell>
+                          {getStatusBadge(submission.status)}
+                        </TableCell>
+                        
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className="w-16 h-2 bg-slate-200 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all duration-300"
+                                style={{ width: `${progress}%` }}
+                              />
+                            </div>
+                            <span className="text-sm font-medium">{progress}%</span>
                           </div>
-                          <span className="text-sm font-medium">{progress}%</span>
-                        </div>
-                      </TableCell>
-                      
-                      <TableCell>
-                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                          <Calendar className="h-3 w-3" />
-                          {new Date(submission.last_updated).toLocaleDateString()}
-                        </div>
-                      </TableCell>
-                      
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {notesCount > 0 && (
-                            <Badge variant="outline" className="flex items-center gap-1">
-                              <MessageSquare className="h-3 w-3" />
-                              {notesCount}
-                            </Badge>
-                          )}
-                          
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                <Plus className="h-3 w-3" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-2xl">
-                              <DialogHeader>
-                                <DialogTitle>Notes for {submission.user.email}</DialogTitle>
-                              </DialogHeader>
-                              
-                              <div className="space-y-4">
-                                {submission.admin_notes && submission.admin_notes.length > 0 && (
-                                  <div className="space-y-3 max-h-60 overflow-y-auto">
-                                    {submission.admin_notes.map((note) => (
-                                      <div key={note.id} className="p-3 bg-slate-50 rounded-lg">
-                                        <div className="flex items-center justify-between mb-2">
-                                          <span className="text-sm font-medium">{note.admin.email}</span>
-                                          <span className="text-xs text-muted-foreground">
-                                            {new Date(note.created_at).toLocaleString()}
-                                          </span>
-                                        </div>
-                                        <p className="text-sm whitespace-pre-wrap">{note.note}</p>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
+                        </TableCell>
+                        
+                        <TableCell className="whitespace-nowrap">
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <Calendar className="h-3 w-3" />
+                            {new Date(submission.last_updated).toLocaleDateString()}
+                          </div>
+                        </TableCell>
+                        
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {notesCount > 0 && (
+                              <Badge variant="outline" className="flex items-center gap-1">
+                                <MessageSquare className="h-3 w-3" />
+                                {notesCount}
+                              </Badge>
+                            )}
+                            
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-2xl max-w-[95vw] w-full">
+                                <DialogHeader>
+                                  <DialogTitle>Notes for {submission.user.email}</DialogTitle>
+                                </DialogHeader>
                                 
-                                <div className="space-y-2">
-                                  <Textarea
-                                    placeholder="Add a note..."
-                                    value={selectedSubmission === submission.id ? newNote : ''}
-                                    onChange={(e) => {
-                                      setNewNote(e.target.value);
-                                      setSelectedSubmission(submission.id);
-                                    }}
-                                  />
-                                  <Button 
-                                    onClick={() => addNote(submission.id)}
-                                    disabled={!newNote.trim() || saving}
-                                    className="w-full"
-                                  >
-                                    {saving ? 'Adding...' : 'Add Note'}
-                                  </Button>
+                                <div className="space-y-4">
+                                  {submission.admin_notes && submission.admin_notes.length > 0 && (
+                                    <div className="space-y-3 max-h-60 overflow-y-auto">
+                                      {submission.admin_notes.map((note) => (
+                                        <div key={note.id} className="p-3 bg-slate-50 rounded-lg">
+                                          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2">
+                                            <span className="text-sm font-medium">{note.admin.email}</span>
+                                            <span className="text-xs text-muted-foreground">
+                                              {new Date(note.created_at).toLocaleString()}
+                                            </span>
+                                          </div>
+                                          <p className="text-sm whitespace-pre-wrap">{note.note}</p>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                  
+                                  <div className="space-y-2">
+                                    <Textarea
+                                      placeholder="Add a note..."
+                                      value={selectedSubmission === submission.id ? newNote : ''}
+                                      onChange={(e) => {
+                                        setNewNote(e.target.value);
+                                        setSelectedSubmission(submission.id);
+                                      }}
+                                    />
+                                    <Button 
+                                      onClick={() => addNote(submission.id)}
+                                      disabled={!newNote.trim() || saving}
+                                      className="w-full"
+                                    >
+                                      {saving ? 'Adding...' : 'Add Note'}
+                                    </Button>
+                                  </div>
                                 </div>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
-                        </div>
-                      </TableCell>
-                      
-                      <TableCell className="text-right">
-                        <Button asChild variant="outline" size="sm">
-                          <Link to={`/admin/submission/${submission.id}`}>
-                            <Eye className="h-3 w-3 mr-1" />
-                            View
-                          </Link>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
+                        </TableCell>
+                        
+                        <TableCell className="text-right whitespace-nowrap">
+                          <Button asChild variant="outline" size="sm">
+                            <Link to={`/admin/submission/${submission.id}`}>
+                              <Eye className="h-3 w-3 mr-1" />
+                              View
+                            </Link>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           </ScrollArea>
         </div>
         

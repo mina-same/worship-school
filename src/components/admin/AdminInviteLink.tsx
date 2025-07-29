@@ -59,7 +59,7 @@ const AdminInviteLink: React.FC = () => {
         <p className="text-slate-600">Generate a link to automatically assign users to yourself</p>
       </CardHeader>
       
-      <CardContent className="p-6 space-y-6">
+      <CardContent className="p-3 sm:p-6 space-y-6">
         <div className="space-y-4">
           <div className="flex items-center gap-4">
             <Button 
@@ -75,17 +75,18 @@ const AdminInviteLink: React.FC = () => {
           {inviteLink && (
             <div className="space-y-2">
               <Label htmlFor="invite-link">Your Invite Link</Label>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2">
                 <Input
                   id="invite-link"
                   value={inviteLink}
                   readOnly
-                  className="font-mono text-sm"
+                  className="font-mono text-sm flex-1"
                 />
                 <Button
                   onClick={copyToClipboard}
                   variant="outline"
                   size="icon"
+                  className="sm:flex-shrink-0"
                 >
                   <Copy className="h-4 w-4" />
                 </Button>
