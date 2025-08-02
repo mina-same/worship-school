@@ -5,8 +5,10 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Tables } from '@/integrations/supabase/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Link } from 'react-router-dom';
-import { Clock, CheckCircle, PlayCircle, FileText, Calendar, UserCheck, Mail, Settings } from 'lucide-react';
+import { Clock, CheckCircle, PlayCircle, FileText, Calendar, UserCheck, Mail, Settings, Shield } from 'lucide-react';
 
 type UserDashboardProps = {
   formTemplates: Tables<'form_templates'>[];
