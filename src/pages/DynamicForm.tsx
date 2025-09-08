@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
@@ -32,12 +33,13 @@ const DynamicForm: React.FC = () => {
 
   type Submission = {
     id: string;
-    form_id: string;
+    form_template_id: string;
     user_id: string;
     form_data: Record<string, unknown>;
     status: 'draft' | 'submitted' | 'completed' | 'rejected';
     created_at?: string;
     updated_at?: string;
+    last_updated?: string;
   };
 
   const [formTemplate, setFormTemplate] = useState<FormTemplate | null>(null);
@@ -62,7 +64,10 @@ const DynamicForm: React.FC = () => {
           .single();
 
         if (templateError) throw templateError;
-        setFormTemplate(templateData);
+        setFormTemplate({
+          ...templateData,
+          fields: Array.isArray(templateData.fields) ? templateData.fields as FormField[] : []
+        });
 
         // If we have a submissionId, fetch the submission data
         if (submissionId) {
@@ -84,7 +89,11 @@ const DynamicForm: React.FC = () => {
             return;
           }
           
-          setSubmission(submissionData);
+          setSubmission({
+            ...submissionData,
+            form_data: submissionData.form_data as Record<string, unknown>,
+            status: submissionData.status as 'draft' | 'submitted' | 'completed' | 'rejected'
+          });
           
           // Set form data from submission
           if (submissionData.form_data && typeof submissionData.form_data === 'object') {
@@ -135,14 +144,14 @@ const DynamicForm: React.FC = () => {
     const saveTimeout = setTimeout(async () => {
       // Only save if we have some data
       if (Object.keys(formData).length > 0) {
-        await saveFormData('in_progress');
+        await saveFormData('draft');
       }
     }, 3000); // Auto-save after 3 seconds
 
     return () => clearTimeout(saveTimeout);
   }, [formData]);
 
-  const saveFormData = async (status: 'in_progress' | 'completed') => {
+  const saveFormData = async (status: 'draft' | 'submitted' | 'completed' | 'rejected') => {
     if (!user || !templateId || !formTemplate) return;
     
     try {
@@ -153,7 +162,7 @@ const DynamicForm: React.FC = () => {
         const { error } = await supabase
           .from('submissions')
           .update({
-            form_data: formData,
+            form_data: formData as any,
             status: status,
             last_updated: new Date().toISOString(),
           })
@@ -169,7 +178,7 @@ const DynamicForm: React.FC = () => {
           .insert({
             user_id: user.id,
             form_template_id: templateId,
-            form_data: formData,
+            form_data: formData as any,
             status: status,
             last_updated: new Date().toISOString(),
           })
@@ -178,9 +187,13 @@ const DynamicForm: React.FC = () => {
         if (error) throw error;
         
         if (data && data[0]) {
-          setSubmission(data[0]);
+          setSubmission({
+            ...data[0],
+            form_data: data[0].form_data as Record<string, unknown>,
+            status: data[0].status as 'draft' | 'submitted' | 'completed' | 'rejected'
+          });
           // Update URL to include submission ID for future navigation
-          if (status === 'in_progress') {
+          if (status === 'draft') {
             navigate(`/form/${templateId}/${data[0].id}`, { replace: true });
           }
         }
@@ -230,14 +243,38 @@ const DynamicForm: React.FC = () => {
     return user.email.substring(0, 2).toUpperCase();
   };
 
+  // Function to parse markdown-style bold text (*text*) and bolder text (**text**) and return JSX
+  const parseFieldLabel = (label: string, required: boolean) => {
+    // First handle double asterisks (**text**), then single asterisks (*text*)
+    const parts = label.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g);
+    
+    return (
+      <>
+        {parts.map((part, index) => {
+          if (part.startsWith('**') && part.endsWith('**') && part.length > 4) {
+            // Remove double asterisks and make bolder (font-black)
+            const bolderText = part.slice(2, -2);
+            return <span key={index} className="font-black">{bolderText}</span>;
+          } else if (part.startsWith('*') && part.endsWith('*') && part.length > 2) {
+            // Remove single asterisks and make bold
+            const boldText = part.slice(1, -1);
+            return <strong key={index}>{boldText}</strong>;
+          }
+          return part;
+        })}
+        {required && <span className="text-red-500">*</span>}
+      </>
+    );
+  };
+
   const getSubmissionStatusBadge = () => {
     if (!submission) return null;
     
     switch (submission.status) {
       case 'completed':
         return <Badge className="bg-green-100 text-green-800 border-green-200">Completed</Badge>;
-      case 'in_progress':
-        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">In Progress</Badge>;
+      case 'draft':
+        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">Draft</Badge>;
       default:
         return null;
     }
@@ -249,72 +286,75 @@ const DynamicForm: React.FC = () => {
     switch (field.type) {
       case 'text':
         return (
-          <div key={field.id} className="space-y-2">
-            <Label htmlFor={field.id} className="text-slate-700 font-medium">
-              {field.label} {field.required && <span className="text-red-500">*</span>}
+          <div key={field.id} className="space-y-2" dir="rtl">
+            <Label htmlFor={field.id} className="text-slate-700 font-medium whitespace-pre-wrap block text-right leading-relaxed" dir="rtl">
+              {parseFieldLabel(field.label, field.required)}
             </Label>
             <Input
               id={field.id}
               placeholder={field.placeholder}
-              value={value}
+              value={String(value)}
               onChange={(e) => handleFieldChange(field.id, e.target.value)}
               required={field.required}
               disabled={isReadOnly}
-              className="border-slate-200 focus:border-blue-500 focus:ring-blue-500"
+              className="border-slate-200 focus:border-blue-500 focus:ring-blue-500 text-right"
+              dir="rtl"
             />
           </div>
         );
         
       case 'number':
         return (
-          <div key={field.id} className="space-y-2">
-            <Label htmlFor={field.id} className="text-slate-700 font-medium">
-              {field.label} {field.required && <span className="text-red-500">*</span>}
+          <div key={field.id} className="space-y-2" dir="rtl">
+            <Label htmlFor={field.id} className="text-slate-700 font-medium whitespace-pre-wrap block text-right leading-relaxed" dir="rtl">
+              {parseFieldLabel(field.label, field.required)}
             </Label>
             <Input
               id={field.id}
               type="number"
               placeholder={field.placeholder}
-              value={value}
+              value={String(value)}
               onChange={(e) => handleFieldChange(field.id, e.target.value)}
               required={field.required}
               disabled={isReadOnly}
-              className="border-slate-200 focus:border-blue-500 focus:ring-blue-500"
+              className="border-slate-200 focus:border-blue-500 focus:ring-blue-500 text-right"
+              dir="rtl"
             />
           </div>
         );
         
       case 'textarea':
         return (
-          <div key={field.id} className="space-y-2">
-            <Label htmlFor={field.id} className="text-slate-700 font-medium">
-              {field.label} {field.required && <span className="text-red-500">*</span>}
+          <div key={field.id} className="space-y-2" dir="rtl">
+            <Label htmlFor={field.id} className="text-slate-700 font-medium whitespace-pre-wrap block text-right leading-relaxed" dir="rtl">
+              {parseFieldLabel(field.label, field.required)}
             </Label>
             <Textarea
               id={field.id}
               placeholder={field.placeholder}
-              value={value}
+              value={String(value)}
               onChange={(e) => handleFieldChange(field.id, e.target.value)}
               required={field.required}
               disabled={isReadOnly}
-              className="border-slate-200 focus:border-blue-500 focus:ring-blue-500 min-h-[100px]"
+              className="border-slate-200 focus:border-blue-500 focus:ring-blue-500 min-h-[100px] text-right"
+              dir="rtl"
             />
           </div>
         );
         
       case 'dropdown':
         return (
-          <div key={field.id} className="space-y-2">
-            <Label htmlFor={field.id} className="text-slate-700 font-medium">
-              {field.label} {field.required && <span className="text-red-500">*</span>}
+          <div key={field.id} className="space-y-2" dir="rtl">
+            <Label htmlFor={field.id} className="text-slate-700 font-medium whitespace-pre-wrap block text-right leading-relaxed" dir="rtl">
+              {parseFieldLabel(field.label, field.required)}
             </Label>
             <Select
-              value={value}
+              value={String(value)}
               onValueChange={(value) => handleFieldChange(field.id, value)}
               disabled={isReadOnly}
             >
-              <SelectTrigger className="border-slate-200 focus:border-blue-500 focus:ring-blue-500">
-                <SelectValue placeholder={field.placeholder || "Select an option"} />
+              <SelectTrigger className="border-slate-200 focus:border-blue-500 focus:ring-blue-500 text-right" dir="rtl">
+                <SelectValue placeholder={field.placeholder || "اختر خياراً"} />
               </SelectTrigger>
               <SelectContent>
                 {field.options?.map((option) => (
@@ -329,16 +369,16 @@ const DynamicForm: React.FC = () => {
 
       case 'boolean':
         return (
-          <div key={field.id} className="space-y-2">
-            <div className="flex items-center space-x-3">
-              <Switch
+          <div key={field.id} className="space-y-2" dir="rtl">
+            <div className="flex items-center gap-3" dir="rtl">
+              <Checkbox
                 id={field.id}
                 checked={value === true || value === 'true'}
                 onCheckedChange={(checked) => handleFieldChange(field.id, checked)}
                 disabled={isReadOnly}
               />
-              <Label htmlFor={field.id} className="text-slate-700 font-medium">
-                {field.label} {field.required && <span className="text-red-500">*</span>}
+              <Label htmlFor={field.id} className="text-slate-700 font-medium whitespace-pre-wrap text-right leading-relaxed" dir="rtl">
+                {parseFieldLabel(field.label, field.required)}
               </Label>
             </div>
           </div>
@@ -347,9 +387,9 @@ const DynamicForm: React.FC = () => {
       case 'file':
       case 'image':
         return (
-          <div key={field.id} className="space-y-2">
-            <Label htmlFor={field.id} className="text-slate-700 font-medium">
-              {field.label} {field.required && <span className="text-red-500">*</span>}
+          <div key={field.id} className="space-y-2" dir="rtl">
+            <Label htmlFor={field.id} className="text-slate-700 font-medium whitespace-pre-wrap block text-right leading-relaxed" dir="rtl">
+              {parseFieldLabel(field.label, field.required)}
             </Label>
             <Input
               id={field.id}
@@ -366,8 +406,50 @@ const DynamicForm: React.FC = () => {
               className="border-slate-200 focus:border-blue-500 focus:ring-blue-500"
             />
             {value && (
-              <p className="text-sm text-slate-600">Selected: {value}</p>
+              <p className="text-sm text-slate-600">Selected: {String(value)}</p>
             )}
+          </div>
+        );
+
+      case 'header':
+        const HeaderTag = `h${field.headerLevel || 2}` as keyof JSX.IntrinsicElements;
+        const headerSizes = {
+          1: 'text-4xl font-bold',
+          2: 'text-3xl font-semibold',
+          3: 'text-2xl font-semibold',
+          4: 'text-xl font-medium',
+          5: 'text-lg font-medium',
+          6: 'text-base font-medium'
+        };
+        
+        return (
+          <div key={field.id} className="space-y-2 py-4">
+            <HeaderTag className={`${headerSizes[field.headerLevel || 2]} text-slate-800 leading-tight whitespace-pre-wrap text-right`} dir="rtl">
+              {field.label}
+            </HeaderTag>
+            {field.description && (
+              <p className="text-slate-600 text-sm leading-relaxed text-right whitespace-pre-wrap" dir="rtl">
+                {field.description}
+              </p>
+            )}
+          </div>
+        );
+
+      case 'separator':
+        return (
+          <div key={field.id} className="py-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-300"></div>
+              </div>
+              {field.label && (
+                <div className="relative flex justify-center">
+                  <span className="bg-white px-4 text-sm text-slate-500 font-medium whitespace-pre-wrap text-right" dir="rtl">
+                    {field.label}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
         );
         
@@ -480,7 +562,7 @@ const DynamicForm: React.FC = () => {
           <CardFooter className="flex justify-between bg-slate-50 rounded-b-lg p-6">
             <Button 
               variant="outline" 
-              onClick={() => saveFormData('in_progress')}
+              onClick={() => saveFormData('draft')}
               disabled={saving || submitting}
               className="flex items-center space-x-2"
             >

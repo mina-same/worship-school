@@ -17,6 +17,8 @@ const fieldTypes = [
   { value: 'file', label: 'File' },
   { value: 'image', label: 'Image' },
   { value: 'boolean', label: 'Boolean' },
+  { value: 'header', label: 'Header' },
+  { value: 'separator', label: 'Line Separator' },
 ];
 
 export const FieldTypeSelector: React.FC<FieldTypeSelectorProps> = ({

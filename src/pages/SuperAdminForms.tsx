@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Edit, Plus, FileText, Calendar, User } from 'lucide-react';
+import { ArrowLeft, Edit, Plus, FileText, Calendar, User, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 
@@ -12,6 +12,7 @@ const SuperAdminForms: React.FC = () => {
   const navigate = useNavigate();
   const [forms, setForms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchForms = async () => {
@@ -40,6 +41,49 @@ const SuperAdminForms: React.FC = () => {
 
     fetchForms();
   }, []);
+
+  const handleDeleteForm = async (formId: string, formName: string) => {
+    if (!confirm(`Are you sure you want to delete the form "${formName}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      setDeleting(formId);
+      
+      // Delete all submissions for this form first
+      const { error: submissionsError } = await supabase
+        .from('submissions')
+        .delete()
+        .eq('form_template_id', formId);
+
+      if (submissionsError) throw submissionsError;
+
+      // Delete the form template
+      const { error: formError } = await supabase
+        .from('form_templates')
+        .delete()
+        .eq('id', formId);
+
+      if (formError) throw formError;
+
+      // Update local state
+      setForms(forms.filter(form => form.id !== formId));
+      
+      toast({
+        title: "Success",
+        description: `Form "${formName}" has been deleted successfully`,
+      });
+    } catch (error) {
+      console.error('Error deleting form:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete form",
+        variant: "destructive"
+      });
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -109,14 +153,26 @@ const SuperAdminForms: React.FC = () => {
                       </div>
                     </div>
                     
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => navigate(`/form-builder/${form.id}`)}
-                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => navigate(`/form-builder/${form.id}`)}
+                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteForm(form.id, form.name)}
+                        disabled={deleting === form.id}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 
