@@ -288,6 +288,26 @@ const DynamicForm: React.FC = () => {
     return user.email.substring(0, 2).toUpperCase();
   };
 
+  // Helper function to truncate long file names
+  const truncateFileName = (fileName: string, maxLength: number = 30) => {
+    if (fileName.length <= maxLength) return fileName;
+    
+    const extension = fileName.split('.').pop();
+    const nameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
+    const truncatedName = nameWithoutExt.substring(0, maxLength - extension!.length - 4) + '...';
+    
+    return `${truncatedName}.${extension}`;
+  };
+
+  // Helper function to check if file is an image
+  const isImageFile = (fileName: string, fileType?: string) => {
+    if (fileType) {
+      return fileType.startsWith('image/');
+    }
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg', '.tiff', '.ico', '.heic', '.heif'];
+    return imageExtensions.some(ext => fileName.toLowerCase().endsWith(ext));
+  };
+
   // Function to parse markdown-style bold text (*text*) and bolder text (**text**) and return JSX
   const parseFieldLabel = (label: string, required: boolean) => {
     // First handle double asterisks (**text**), then single asterisks (*text*)
@@ -651,7 +671,9 @@ const DynamicForm: React.FC = () => {
                         {field.type === 'image' && (
                           <div className="p-2 bg-slate-50 rounded border">
                             <div className="flex items-center justify-between mb-2">
-                              <span className="text-xs text-slate-600 truncate">{file.fileName}</span>
+                              <span className="text-xs text-slate-600 truncate" title={file.fileName}>
+                                {truncateFileName(file.fileName)}
+                              </span>
                               {!isReadOnly && (
                                 <button
                                   type="button"
@@ -713,43 +735,74 @@ const DynamicForm: React.FC = () => {
                           </div>
                         )}
                       {field.type === 'file' && (
-                        <div className="p-2 bg-slate-50 rounded border flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <svg className="h-4 w-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                            </svg>
-                            <span className="text-sm text-slate-600 truncate">{file.fileName}</span>
-                            {(file.publicUrl || file.base64Data) && (
-                              <a 
-                                href={file.publicUrl || file.base64Data} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="text-blue-500 hover:text-blue-700 text-xs"
+                        <div className="p-2 bg-slate-50 rounded border">
+                          {/* Show image preview if it's an image file */}
+                          {isImageFile(file.fileName, file.fileType) && (file.base64Data || file.previewUrl || file.publicUrl) ? (
+                            <div className="mb-2">
+                              <img 
+                                src={file.base64Data || file.previewUrl || file.publicUrl}
+                                alt={file.fileName}
+                                className="max-w-full h-auto rounded border shadow-sm cursor-pointer hover:opacity-90"
+                                style={{ maxHeight: '120px', display: 'block' }}
+                                onClick={() => {
+                                  const imageUrl = file.base64Data || file.previewUrl || file.publicUrl;
+                                  if (imageUrl) {
+                                    window.open(imageUrl, '_blank');
+                                  }
+                                }}
+                                onError={(e) => {
+                                  console.error('Image failed to load:', file.fileName);
+                                }}
+                              />
+                            </div>
+                          ) : null}
+                          
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              {isImageFile(file.fileName, file.fileType) ? (
+                                <svg className="h-4 w-4 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                              ) : (
+                                <svg className="h-4 w-4 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                              )}
+                              <span className="text-sm text-slate-600 truncate" title={file.fileName}>
+                                {truncateFileName(file.fileName)}
+                              </span>
+                              {(file.publicUrl || file.base64Data) && (
+                                <a 
+                                  href={file.publicUrl || file.base64Data} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="text-blue-500 hover:text-blue-700 text-xs flex-shrink-0"
+                                >
+                                  View
+                                </a>
+                              )}
+                            </div>
+                            {!isReadOnly && (
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  const currentFiles = Array.isArray(value) ? value : [];
+                                  const updatedFiles = currentFiles.filter((f: any) => f.id !== file.id);
+                                  handleFieldChange(field.id, updatedFiles.length > 0 ? updatedFiles : null);
+                                  
+                                  toast({
+                                    title: "File Removed",
+                                    description: `${truncateFileName(file.fileName)} removed`,
+                                  });
+                                }}
+                                className="text-red-500 hover:text-red-700 p-1 rounded flex-shrink-0"
                               >
-                                View
-                              </a>
+                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                              </button>
                             )}
                           </div>
-                          {!isReadOnly && (
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                const currentFiles = Array.isArray(value) ? value : [];
-                                const updatedFiles = currentFiles.filter((f: any) => f.id !== file.id);
-                                handleFieldChange(field.id, updatedFiles.length > 0 ? updatedFiles : null);
-                                
-                                toast({
-                                  title: "File Removed",
-                                  description: `${file.fileName} removed`,
-                                });
-                              }}
-                              className="text-red-500 hover:text-red-700 p-1 rounded"
-                            >
-                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
-                          )}
                         </div>
                       )}
                     </div>

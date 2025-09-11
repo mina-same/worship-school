@@ -158,6 +158,26 @@ const SubmissionDetail: React.FC = () => {
     return fieldType === 'file' || fieldType === 'image';
   };
 
+  // Helper function to truncate long file names
+  const truncateFileName = (fileName: string, maxLength: number = 30) => {
+    if (fileName.length <= maxLength) return fileName;
+    
+    const extension = fileName.split('.').pop();
+    const nameWithoutExt = fileName.substring(0, fileName.lastIndexOf('.'));
+    const truncatedName = nameWithoutExt.substring(0, maxLength - extension!.length - 4) + '...';
+    
+    return `${truncatedName}.${extension}`;
+  };
+
+  // Helper function to check if file is an image
+  const isImageFile = (fileName: string, fileType?: string) => {
+    if (fileType) {
+      return fileType.startsWith('image/');
+    }
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg', '.tiff', '.ico', '.heic', '.heif'];
+    return imageExtensions.some(ext => fileName.toLowerCase().endsWith(ext));
+  };
+
   const getFileUrl = (fileName: string) => {
     // Get the public URL for the uploaded file from Supabase storage
     const { data } = supabase.storage.from('uploads').getPublicUrl(fileName);
@@ -183,21 +203,29 @@ const SubmissionDetail: React.FC = () => {
                   ) : (
                     <FileText className="h-4 w-4 text-gray-500" />
                   )}
-                  <span className="text-sm font-medium truncate">{file.fileName || file.name}</span>
+                  <span className="text-sm font-medium truncate" title={file.fileName || file.name}>
+                    {truncateFileName(file.fileName || file.name)}
+                  </span>
                 </div>
                 
-                {isImage && (
+                {/* Always show image preview for image files */}
+                {(isImage || isImageFile(file.fileName || file.name, file.fileType)) && (
                   <div className="mb-2">
                     <img 
                       src={file.publicUrl || file.previewUrl || file.base64Data || getFileUrl(file.fileName || file.name)}
                       alt={file.fileName || file.name}
-                      className="max-w-full h-auto rounded border shadow-sm cursor-pointer hover:opacity-90"
+                      className="max-w-full h-auto rounded border shadow-sm cursor-pointer hover:opacity-90 transition-opacity"
                       style={{ maxHeight: '200px', display: 'block' }}
                       onClick={() => {
                         const imageUrl = file.publicUrl || file.previewUrl || file.base64Data || getFileUrl(file.fileName || file.name);
                         if (imageUrl) {
                           window.open(imageUrl, '_blank');
                         }
+                      }}
+                      onError={(e) => {
+                        console.error('Image failed to load:', file.fileName || file.name);
+                        // Hide the image if it fails to load
+                        (e.target as HTMLImageElement).style.display = 'none';
                       }}
                     />
                   </div>
@@ -269,7 +297,9 @@ const SubmissionDetail: React.FC = () => {
               ) : (
                 <FileText className="h-4 w-4 text-gray-500" />
               )}
-              <span className="text-sm font-medium">{fileName}</span>
+              <span className="text-sm font-medium" title={fileName}>
+                {truncateFileName(fileName)}
+              </span>
             </div>
             
             <div className="flex gap-2">
@@ -314,13 +344,19 @@ const SubmissionDetail: React.FC = () => {
             </div>
           </div>
           
-          {isImage && fileUrl && (
+          {/* Show image preview for image files */}
+          {(isImage || isImageFile(fileName, value.fileType)) && fileUrl && (
             <img 
               src={fileUrl}
               alt={fileName}
               className="max-w-full h-auto rounded border cursor-pointer hover:opacity-90 transition-opacity"
               style={{ maxHeight: '200px' }}
               onClick={() => window.open(fileUrl, '_blank')}
+              onError={(e) => {
+                console.error('Image failed to load:', fileName);
+                // Hide the image if it fails to load
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
             />
           )}
         </div>
@@ -340,7 +376,9 @@ const SubmissionDetail: React.FC = () => {
             ) : (
               <FileText className="h-4 w-4 text-gray-500" />
             )}
-            <span className="text-sm font-medium">{fileName}</span>
+            <span className="text-sm font-medium" title={fileName}>
+              {truncateFileName(fileName)}
+            </span>
           </div>
           
           <div className="flex gap-2">
@@ -383,7 +421,8 @@ const SubmissionDetail: React.FC = () => {
           </div>
         </div>
         
-        {isImage && (
+        {/* Show image preview for image files */}
+        {(isImage || isImageFile(fileName)) && (
           <div className="mt-2">
             <img 
               src={fileUrl}
@@ -392,9 +431,9 @@ const SubmissionDetail: React.FC = () => {
               style={{ maxHeight: '300px' }}
               onClick={() => window.open(fileUrl, '_blank')}
               onError={(e) => {
-                // Fallback if image fails to load
-                const target = e.target as HTMLImageElement;
-                target.src = `https://via.placeholder.com/300x200?text=${encodeURIComponent('Image not found')}`;
+                console.error('Image failed to load:', fileName);
+                // Hide the image if it fails to load
+                (e.target as HTMLImageElement).style.display = 'none';
               }}
             />
           </div>
