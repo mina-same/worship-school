@@ -1,1 +1,9 @@
 project_id = "tlutescdhevmbftqqsji"
+
+[db]
+# Port to use for the local database URL
+port = 54322
+major_version = 15
+# External db would be an existing database outside of your Supabase project.
+# Defaults to the linked Supabase project if not specified.
+# external_db_url = "postgresql://postgres:password@localhost/postgres"

@@ -158,11 +158,178 @@ const SubmissionDetail: React.FC = () => {
     return fieldType === 'file' || fieldType === 'image';
   };
 
+  const getFileUrl = (fileName: string) => {
+    // Get the public URL for the uploaded file from Supabase storage
+    const { data } = supabase.storage.from('uploads').getPublicUrl(fileName);
+    return data.publicUrl;
+  };
+
   const renderFileOrImageField = (field: any, value: any) => {
     if (!value) return null;
 
     const isImage = field.type === 'image';
-    const fileName = typeof value === 'string' ? value : value.name || 'Unknown file';
+    
+    // Handle array of files (multiple uploads)
+    if (Array.isArray(value)) {
+      return (
+        <div className="mt-2 space-y-2">
+          <p className="text-sm font-medium text-slate-700">{value.length} file(s):</p>
+          <div className="grid gap-2 grid-cols-1 md:grid-cols-2">
+            {value.map((file: any, index: number) => (
+              <div key={file.id || index} className="p-3 bg-slate-50 rounded border">
+                <div className="flex items-center gap-2 mb-2">
+                  {isImage ? (
+                    <ImageIcon className="h-4 w-4 text-blue-500" />
+                  ) : (
+                    <FileText className="h-4 w-4 text-gray-500" />
+                  )}
+                  <span className="text-sm font-medium truncate">{file.fileName || file.name}</span>
+                </div>
+                
+                {isImage && (
+                  <div className="mb-2">
+                    <img 
+                      src={file.publicUrl || file.previewUrl || file.base64Data || getFileUrl(file.fileName || file.name)}
+                      alt={file.fileName || file.name}
+                      className="max-w-full h-auto rounded border shadow-sm cursor-pointer hover:opacity-90"
+                      style={{ maxHeight: '200px', display: 'block' }}
+                      onClick={() => {
+                        const imageUrl = file.publicUrl || file.previewUrl || file.base64Data || getFileUrl(file.fileName || file.name);
+                        if (imageUrl) {
+                          window.open(imageUrl, '_blank');
+                        }
+                      }}
+                    />
+                  </div>
+                )}
+                
+                <div className="flex gap-2 mb-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const fileUrl = file.publicUrl || file.previewUrl || file.base64Data || getFileUrl(file.fileName || file.name);
+                      if (fileUrl) {
+                        window.open(fileUrl, '_blank');
+                      }
+                    }}
+                    className="flex items-center gap-1"
+                  >
+                    {isImage ? <ImageIcon className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
+                    View
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const fileUrl = file.publicUrl || file.base64Data || getFileUrl(file.fileName || file.name);
+                      const fileName = file.fileName || file.name;
+                      
+                      if (fileUrl) {
+                        const a = document.createElement('a');
+                        a.href = fileUrl;
+                        a.download = fileName;
+                        a.target = '_blank';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                      }
+                      
+                      toast({
+                        title: "Download Started",
+                        description: `Downloading ${fileName}`,
+                      });
+                    }}
+                    className="flex items-center gap-1"
+                  >
+                    <Download className="h-3 w-3" />
+                    Download
+                  </Button>
+                </div>
+                
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+    
+    // Handle single file object (new format with publicUrl or base64)
+    if (typeof value === 'object' && (value.fileName || value.name)) {
+      const fileName = value.fileName || value.name;
+      const fileUrl = value.publicUrl || value.previewUrl || value.base64Data || getFileUrl(fileName);
+      
+      return (
+        <div className="mt-2 p-3 bg-slate-50 rounded border">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              {isImage ? (
+                <ImageIcon className="h-4 w-4 text-blue-500" />
+              ) : (
+                <FileText className="h-4 w-4 text-gray-500" />
+              )}
+              <span className="text-sm font-medium">{fileName}</span>
+            </div>
+            
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (fileUrl) {
+                    window.open(fileUrl, '_blank');
+                  }
+                }}
+                className="flex items-center gap-1"
+              >
+                {isImage ? <ImageIcon className="h-3 w-3" /> : <FileText className="h-3 w-3" />}
+                View
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (fileUrl) {
+                    const a = document.createElement('a');
+                    a.href = fileUrl;
+                    a.download = fileName;
+                    a.target = '_blank';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                  }
+                  
+                  toast({
+                    title: "Download Started",
+                    description: `Downloading ${fileName}`,
+                  });
+                }}
+                className="flex items-center gap-1"
+              >
+                <Download className="h-3 w-3" />
+                Download
+              </Button>
+            </div>
+          </div>
+          
+          {isImage && fileUrl && (
+            <img 
+              src={fileUrl}
+              alt={fileName}
+              className="max-w-full h-auto rounded border cursor-pointer hover:opacity-90 transition-opacity"
+              style={{ maxHeight: '200px' }}
+              onClick={() => window.open(fileUrl, '_blank')}
+            />
+          )}
+        </div>
+      );
+    }
+    
+    // Handle old string format (legacy)
+    const fileName = typeof value === 'string' ? value : 'Unknown file';
+    const fileUrl = getFileUrl(fileName);
 
     return (
       <div className="mt-2 p-3 bg-slate-50 rounded border">
@@ -182,9 +349,7 @@ const SubmissionDetail: React.FC = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  // Create a mock image URL for demonstration
-                  const imageUrl = `https://via.placeholder.com/600x400?text=${encodeURIComponent(fileName)}`;
-                  window.open(imageUrl, '_blank');
+                  window.open(fileUrl, '_blank');
                 }}
                 className="flex items-center gap-1"
               >
@@ -197,58 +362,13 @@ const SubmissionDetail: React.FC = () => {
               variant="outline"
               size="sm"
               onClick={() => {
-                if (isImage) {
-                  // For images, create a canvas and download as image
-                  const canvas = document.createElement('canvas');
-                  const ctx = canvas.getContext('2d');
-                  const img = new Image();
-                  
-                  img.crossOrigin = 'anonymous';
-                  img.onload = () => {
-                    canvas.width = img.width;
-                    canvas.height = img.height;
-                    ctx?.drawImage(img, 0, 0);
-                    
-                    canvas.toBlob((blob) => {
-                      if (blob) {
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = fileName.includes('.') ? fileName : `${fileName}.png`;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(url);
-                      }
-                    }, 'image/png');
-                  };
-                  
-                  img.onerror = () => {
-                    // Fallback: download as text file with image info
-                    const blob = new Blob([`Image file: ${fileName}\nNote: This is a placeholder. In a real application, this would be the actual image file.`], { type: 'text/plain' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `${fileName.replace(/\.[^/.]+$/, "")}_info.txt`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                  };
-                  
-                  img.src = `https://via.placeholder.com/600x400?text=${encodeURIComponent(fileName)}`;
-                } else {
-                  // For other files, create a text file with file info
-                  const blob = new Blob([`File: ${fileName}\nNote: This is a placeholder. In a real application, this would be the actual file content.`], { type: 'text/plain' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = fileName.includes('.') ? fileName : `${fileName}.txt`;
-                  document.body.appendChild(a);
-                  a.click();
-                  document.body.removeChild(a);
-                  URL.revokeObjectURL(url);
-                }
+                const a = document.createElement('a');
+                a.href = fileUrl;
+                a.download = fileName;
+                a.target = '_blank';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
                 
                 toast({
                   title: "Download Started",
@@ -266,10 +386,16 @@ const SubmissionDetail: React.FC = () => {
         {isImage && (
           <div className="mt-2">
             <img 
-              src={`https://via.placeholder.com/300x200?text=${encodeURIComponent(fileName)}`}
+              src={fileUrl}
               alt={fileName}
-              className="max-w-full h-auto rounded border"
-              style={{ maxHeight: '200px' }}
+              className="max-w-full h-auto rounded border cursor-pointer hover:opacity-90 transition-opacity"
+              style={{ maxHeight: '300px' }}
+              onClick={() => window.open(fileUrl, '_blank')}
+              onError={(e) => {
+                // Fallback if image fails to load
+                const target = e.target as HTMLImageElement;
+                target.src = `https://via.placeholder.com/300x200?text=${encodeURIComponent('Image not found')}`;
+              }}
             />
           </div>
         )}
@@ -422,7 +548,9 @@ const SubmissionDetail: React.FC = () => {
                             <span className="text-sm font-medium">Answer: </span>
                             {isFileOrImage(field.type) ? (
                               <div>
-                                <div className="text-sm mb-2">{value}</div>
+                                <div className="text-sm mb-2">
+                                  {typeof value === 'object' && value.fileName ? value.fileName : String(value)}
+                                </div>
                                 {renderFileOrImageField(field, value)}
                               </div>
                             ) : (

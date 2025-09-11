@@ -36,7 +36,7 @@ const DynamicForm: React.FC = () => {
     form_template_id: string;
     user_id: string;
     form_data: Record<string, unknown>;
-    status: 'draft' | 'submitted' | 'completed' | 'rejected';
+    status: 'pending' | 'in_progress' | 'submitted' | 'completed' | 'rejected';
     created_at?: string;
     updated_at?: string;
     last_updated?: string;
@@ -92,7 +92,7 @@ const DynamicForm: React.FC = () => {
           setSubmission({
             ...submissionData,
             form_data: submissionData.form_data as Record<string, unknown>,
-            status: submissionData.status as 'draft' | 'submitted' | 'completed' | 'rejected'
+            status: submissionData.status as 'pending' | 'in_progress' | 'submitted' | 'completed' | 'rejected'
           });
           
           // Set form data from submission
@@ -144,25 +144,62 @@ const DynamicForm: React.FC = () => {
     const saveTimeout = setTimeout(async () => {
       // Only save if we have some data
       if (Object.keys(formData).length > 0) {
-        await saveFormData('draft');
+        await saveFormData('in_progress');
       }
     }, 3000); // Auto-save after 3 seconds
 
     return () => clearTimeout(saveTimeout);
   }, [formData]);
 
-  const saveFormData = async (status: 'draft' | 'submitted' | 'completed' | 'rejected') => {
+  const saveFormData = async (status: 'pending' | 'in_progress' | 'submitted' | 'completed' | 'rejected') => {
     if (!user || !templateId || !formTemplate) return;
     
     try {
       setSaving(true);
+      
+      // Clean form data to ensure it's JSON-serializable
+      const cleanedFormData = Object.entries(formData).reduce((acc, [key, value]) => {
+        // Handle file/image arrays
+        if (Array.isArray(value)) {
+          acc[key] = value.map((item: any) => {
+            if (typeof item === 'object' && item !== null) {
+              // Keep only serializable properties
+              return {
+                id: item.id,
+                fileName: item.fileName,
+                fileType: item.fileType,
+                fileSize: item.fileSize,
+                base64Data: item.base64Data,
+                publicUrl: item.publicUrl
+              };
+            }
+            return item;
+          });
+        } 
+        // Handle single file/image objects
+        else if (typeof value === 'object' && value !== null && 'fileName' in value) {
+          acc[key] = {
+            id: (value as any).id,
+            fileName: (value as any).fileName,
+            fileType: (value as any).fileType,
+            fileSize: (value as any).fileSize,
+            base64Data: (value as any).base64Data,
+            publicUrl: (value as any).publicUrl
+          };
+        }
+        // Keep other values as-is
+        else {
+          acc[key] = value;
+        }
+        return acc;
+      }, {} as Record<string, unknown>);
       
       // If we already have a submission, update it
       if (submission) {
         const { error } = await supabase
           .from('submissions')
           .update({
-            form_data: formData as any,
+            form_data: cleanedFormData as any,
             status: status,
             last_updated: new Date().toISOString(),
           })
@@ -178,7 +215,7 @@ const DynamicForm: React.FC = () => {
           .insert({
             user_id: user.id,
             form_template_id: templateId,
-            form_data: formData as any,
+            form_data: cleanedFormData as any,
             status: status,
             last_updated: new Date().toISOString(),
           })
@@ -190,10 +227,10 @@ const DynamicForm: React.FC = () => {
           setSubmission({
             ...data[0],
             form_data: data[0].form_data as Record<string, unknown>,
-            status: data[0].status as 'draft' | 'submitted' | 'completed' | 'rejected'
+            status: data[0].status as 'pending' | 'in_progress' | 'submitted' | 'completed' | 'rejected'
           });
           // Update URL to include submission ID for future navigation
-          if (status === 'draft') {
+          if (status === 'pending' || status === 'in_progress') {
             navigate(`/form/${templateId}/${data[0].id}`, { replace: true });
           }
         }
@@ -227,10 +264,18 @@ const DynamicForm: React.FC = () => {
   };
 
   const handleFieldChange = (fieldId: string, value: unknown) => {
-    setFormData(prev => ({
-      ...prev,
-      [fieldId]: value
-    }));
+    // Support both direct values and callback functions
+    if (typeof value === 'function') {
+      setFormData(prev => ({
+        ...prev,
+        [fieldId]: value(prev[fieldId])
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [fieldId]: value
+      }));
+    }
   };
 
   const handleSubmit = async () => {
@@ -273,8 +318,14 @@ const DynamicForm: React.FC = () => {
     switch (submission.status) {
       case 'completed':
         return <Badge className="bg-green-100 text-green-800 border-green-200">Completed</Badge>;
-      case 'draft':
-        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">Draft</Badge>;
+      case 'pending':
+        return <Badge className="bg-gray-100 text-gray-800 border-gray-200">Pending</Badge>;
+      case 'in_progress':
+        return <Badge className="bg-blue-100 text-blue-800 border-blue-200">In Progress</Badge>;
+      case 'submitted':
+        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Submitted</Badge>;
+      case 'rejected':
+        return <Badge className="bg-red-100 text-red-800 border-red-200">Rejected</Badge>;
       default:
         return null;
     }
@@ -395,18 +446,317 @@ const DynamicForm: React.FC = () => {
               id={field.id}
               type="file"
               accept={field.type === 'image' ? 'image/*' : undefined}
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  handleFieldChange(field.id, file.name);
+              multiple={true}
+              onChange={async (e) => {
+                const files = Array.from(e.target.files || []);
+                if (files.length > 0) {
+                  try {
+                    const currentFiles = Array.isArray(value) ? value : [];
+                    const newFiles = [];
+                    
+                    for (const file of files) {
+                      // Create preview URL for immediate display
+                      const previewUrl = URL.createObjectURL(file);
+                      
+                      // Store preview data temporarily
+                      const tempData = {
+                        id: `${Date.now()}-${Math.random().toString(36).substring(2)}`,
+                        fileName: file.name,
+                        previewUrl: previewUrl,
+                        isUploading: true
+                      };
+                      newFiles.push(tempData);
+                      
+                      // Convert to base64 for storage
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        const base64Data = reader.result as string;
+                        
+                        const fileData = {
+                          id: tempData.id,
+                          fileName: file.name,
+                          fileType: file.type,
+                          fileSize: file.size,
+                          base64Data: base64Data,
+                          previewUrl: base64Data,
+                          isUploading: false
+                        };
+                        
+                        console.log('File converted to base64:', fileData.fileName);
+                        
+                        handleFieldChange(field.id, (currentValue: any) => {
+                          const files = Array.isArray(currentValue) ? currentValue : [];
+                          const updatedFiles = files.map((f: any) => 
+                            f.id === tempData.id ? fileData : f
+                          );
+                          console.log('Updated files after base64 conversion:', updatedFiles);
+                          return updatedFiles;
+                        });
+                        
+                        // Clean up temporary preview URL
+                        URL.revokeObjectURL(previewUrl);
+                      };
+                      
+                      reader.onerror = () => {
+                        console.error('File reading error');
+                        toast({
+                          title: "Upload Failed",
+                          description: `Failed to process ${file.name}. Please try again.`,
+                          variant: "destructive",
+                        });
+                        
+                        handleFieldChange(field.id, (currentValue: any) => {
+                          const files = Array.isArray(currentValue) ? currentValue : [];
+                          return files.filter((f: any) => f.id !== tempData.id);
+                        });
+                        
+                        URL.revokeObjectURL(previewUrl);
+                      };
+                      
+                      reader.readAsDataURL(file);
+                    }
+                    
+                    // Add temporary files immediately for preview
+                    handleFieldChange(field.id, (currentValue: any) => {
+                      const existing = Array.isArray(currentValue) ? currentValue : [];
+                      console.log('Adding temporary files for preview:', newFiles);
+                      return [...existing, ...newFiles];
+                    });
+                    
+                    toast({
+                      title: "Files Processing",
+                      description: `Converting ${files.length} file(s) to base64...`,
+                    });
+                    
+                  } catch (error) {
+                    console.error('Upload error:', error);
+                    toast({
+                      title: "Upload Failed",
+                      description: "Failed to upload files. Please try again.",
+                      variant: "destructive",
+                    });
+                  }
                 }
               }}
               required={field.required}
               disabled={isReadOnly}
               className="border-slate-200 focus:border-blue-500 focus:ring-blue-500"
             />
-            {value && (
-              <p className="text-sm text-slate-600">Selected: {String(value)}</p>
+
+            {/* Add more files button */}
+            {value && Array.isArray(value) && value.length > 0 && !isReadOnly && (
+              <div className="mt-2">
+                <Input
+                  type="file"
+                  accept={field.type === 'image' ? 'image/*' : undefined}
+                  multiple={true}
+                  onChange={async (e) => {
+                    const files = Array.from(e.target.files || []);
+                    if (files.length > 0) {
+                      try {
+                        const newFiles = [];
+                        
+                        for (const file of files) {
+                          const previewUrl = URL.createObjectURL(file);
+                          
+                          const tempData = {
+                            id: `${Date.now()}-${Math.random().toString(36).substring(2)}`,
+                            fileName: file.name,
+                            previewUrl: previewUrl,
+                            isUploading: true
+                          };
+                          newFiles.push(tempData);
+                          
+                          const reader = new FileReader();
+                          reader.onload = () => {
+                            const base64Data = reader.result as string;
+                            
+                            const fileData = {
+                              id: tempData.id,
+                              fileName: file.name,
+                              fileType: file.type,
+                              fileSize: file.size,
+                              base64Data: base64Data,
+                              previewUrl: base64Data,
+                              isUploading: false
+                            };
+                            
+                            handleFieldChange(field.id, (currentValue: any) => {
+                              const files = Array.isArray(currentValue) ? currentValue : [];
+                              return files.map((f: any) => 
+                                f.id === tempData.id ? fileData : f
+                              );
+                            });
+                            
+                            URL.revokeObjectURL(previewUrl);
+                          };
+                          
+                          reader.onerror = () => {
+                            console.error('File reading error');
+                            toast({
+                              title: "Upload Failed",
+                              description: `Failed to process ${file.name}. Please try again.`,
+                              variant: "destructive",
+                            });
+                            
+                            handleFieldChange(field.id, (currentValue: any) => {
+                              const files = Array.isArray(currentValue) ? currentValue : [];
+                              return files.filter((f: any) => f.id !== tempData.id);
+                            });
+                            
+                            URL.revokeObjectURL(previewUrl);
+                          };
+                          
+                          reader.readAsDataURL(file);
+                        }
+                        
+                        handleFieldChange(field.id, (currentValue: any) => {
+                          const existing = Array.isArray(currentValue) ? currentValue : [];
+                          return [...existing, ...newFiles];
+                        });
+                        
+                        toast({
+                          title: "Files Uploading",
+                          description: `Adding ${files.length} more file(s)...`,
+                        });
+                        
+                      } catch (error) {
+                        console.error('Upload error:', error);
+                        toast({
+                          title: "Upload Failed",
+                          description: "Failed to upload additional files. Please try again.",
+                          variant: "destructive",
+                        });
+                      }
+                    }
+                  }}
+                  className="border-slate-200 focus:border-blue-500 focus:ring-blue-500"
+                  placeholder="Add more files..."
+                />
+                <p className="text-xs text-slate-500 mt-1">Click to add more files</p>
+              </div>
+            )}
+
+            {/* Show uploaded files/images */}
+            {value && Array.isArray(value) && value.length > 0 && (
+              <div className="mt-3 space-y-2">
+                <p className="text-sm text-slate-600">
+                  {value.length} file(s) uploaded
+                </p>
+                <div className="grid gap-2 grid-cols-1 md:grid-cols-2">
+                  {value.map((file: any, index: number) => {
+                    console.log('Rendering file:', file);
+                    return (
+                      <div key={file.id || index} className="relative">
+                        {field.type === 'image' && (
+                          <div className="p-2 bg-slate-50 rounded border">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xs text-slate-600 truncate">{file.fileName}</span>
+                              {!isReadOnly && (
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    const currentFiles = Array.isArray(value) ? value : [];
+                                    const updatedFiles = currentFiles.filter((f: any) => f.id !== file.id);
+                                    handleFieldChange(field.id, updatedFiles.length > 0 ? updatedFiles : null);
+                                    
+                                    if (file.previewUrl && !file.publicUrl && !file.base64Data) {
+                                      URL.revokeObjectURL(file.previewUrl);
+                                    }
+                                    
+                                    toast({
+                                      title: "File Removed",
+                                      description: `${file.fileName} removed`,
+                                    });
+                                  }}
+                                  className="text-red-500 hover:text-red-700 p-1 rounded"
+                                >
+                                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              )}
+                            </div>
+                            {(file.base64Data || file.previewUrl || file.publicUrl) ? (
+                              <img 
+                                src={file.base64Data || file.previewUrl || file.publicUrl}
+                                alt={file.fileName}
+                                className="max-w-full h-auto rounded border shadow-sm cursor-pointer hover:opacity-90"
+                                style={{ maxHeight: '150px', display: 'block' }}
+                                onClick={() => {
+                                  const imageUrl = file.base64Data || file.previewUrl || file.publicUrl;
+                                  if (imageUrl) {
+                                    window.open(imageUrl, '_blank');
+                                  }
+                                }}
+                                onError={(e) => {
+                                  console.error('Image failed to load:', file.fileName);
+                                  console.log('Image src:', (e.target as HTMLImageElement).src);
+                                }}
+                              />
+                            ) : (
+                              <div className="w-full h-32 bg-gray-100 rounded border-2 border-dashed border-gray-300 flex items-center justify-center">
+                                <div className="text-center text-gray-500">
+                                  <svg className="mx-auto h-8 w-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                  </svg>
+                                  <p className="text-xs">No preview</p>
+                                </div>
+                              </div>
+                            )}
+                            {file.isUploading && (
+                              <div className="mt-1 text-xs text-blue-600 flex items-center gap-2">
+                                <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+                                Processing...
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      {field.type === 'file' && (
+                        <div className="p-2 bg-slate-50 rounded border flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <svg className="h-4 w-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            <span className="text-sm text-slate-600 truncate">{file.fileName}</span>
+                            {(file.publicUrl || file.base64Data) && (
+                              <a 
+                                href={file.publicUrl || file.base64Data} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="text-blue-500 hover:text-blue-700 text-xs"
+                              >
+                                View
+                              </a>
+                            )}
+                          </div>
+                          {!isReadOnly && (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const currentFiles = Array.isArray(value) ? value : [];
+                                const updatedFiles = currentFiles.filter((f: any) => f.id !== file.id);
+                                handleFieldChange(field.id, updatedFiles.length > 0 ? updatedFiles : null);
+                                
+                                toast({
+                                  title: "File Removed",
+                                  description: `${file.fileName} removed`,
+                                });
+                              }}
+                              className="text-red-500 hover:text-red-700 p-1 rounded"
+                            >
+                              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                  })}
+                </div>
+              </div>
             )}
           </div>
         );
@@ -546,11 +896,7 @@ const DynamicForm: React.FC = () => {
           <CardContent className="p-8">
             <div className="space-y-6">
               {formTemplate?.fields && Array.isArray(formTemplate.fields) ? (
-                formTemplate.fields.map((field: FormField) => (
-                  <React.Fragment key={field.id}>
-                    {renderFormField(field)}
-                  </React.Fragment>
-                ))
+                formTemplate.fields.map((field: FormField) => renderFormField(field))
               ) : (
                 <div className="text-center py-8">
                   <p className="text-slate-600">No form fields found</p>
@@ -562,7 +908,7 @@ const DynamicForm: React.FC = () => {
           <CardFooter className="flex justify-between bg-slate-50 rounded-b-lg p-6">
             <Button 
               variant="outline" 
-              onClick={() => saveFormData('draft')}
+              onClick={() => saveFormData('in_progress')}
               disabled={saving || submitting}
               className="flex items-center space-x-2"
             >
