@@ -60,11 +60,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     
     // Quick check for existing auth state
-    supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
+    supabase.auth.getSession().then(({ data: { session: existingSession }, error }) => {
       if (!mounted) return;
       
+      // Check for session errors (expired, invalid, etc.)
+      if (error) {
+        console.error('Session error on mount:', error);
+        setSession(null);
+        setUser(null);
+        setUserRole(null);
+        setLoading(false);
+        setIsInitialized(true);
+        // Don't navigate here - let the user stay on login if they're already there
+        return;
+      }
+      
       if (existingSession?.user) {
-        console.log('Found existing session on mount:', existingSession.user.id);
+        // Verify the session is still valid
+        const now = Math.floor(Date.now() / 1000);
+        const expiresAt = existingSession.expires_at;
+        
+        if (expiresAt && expiresAt < now) {
+          console.log('Session expired on mount, clearing state');
+          setSession(null);
+          setUser(null);
+          setUserRole(null);
+          setLoading(false);
+          setIsInitialized(true);
+          return;
+        }
+        
+        console.log('Found valid existing session on mount:', existingSession.user.id);
         setSession(existingSession);
         setUser(existingSession.user);
         
@@ -86,6 +112,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }).catch((error) => {
       console.error('Error checking initial session:', error);
+      setSession(null);
+      setUser(null);
       setLoading(false);
       setIsInitialized(true);
     });
@@ -96,6 +124,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!mounted) return;
         
         console.log('Auth state change:', event, session?.user?.id);
+        
+        // Handle SIGNED_OUT event immediately
+        if (event === 'SIGNED_OUT') {
+          console.log('User signed out, clearing state and redirecting to login');
+          setSession(null);
+          setUser(null);
+          setUserRole(null);
+          setUserProfile(null);
+          setLoading(false);
+          // Clear any stale URL parameters
+          if (window.location.hash || window.location.search) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+          navigate('/login');
+          return; // Exit early for sign out
+        }
+        
+        // Handle expired sessions
+        if (event === 'TOKEN_REFRESHED' && !session) {
+          console.log('Token refresh failed - session expired, redirecting to login');
+          setSession(null);
+          setUser(null);
+          setUserRole(null);
+          setUserProfile(null);
+          setLoading(false);
+          // Clear any stale URL parameters
+          if (window.location.hash || window.location.search) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+          navigate('/login');
+          return; // Exit early for expired session
+        }
         
         setSession(session);
         setUser(session?.user ?? null);
@@ -157,7 +217,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           // Navigate to dashboard after successful sign in (but not on initial session or token refresh)
           if (event === 'SIGNED_IN') {
-            navigate('/dashboard');
+            // Check if session is valid before navigating
+            if (session && session.expires_at) {
+              const now = Math.floor(Date.now() / 1000);
+              const expiresAt = session.expires_at;
+              
+              if (expiresAt > now) {
+                console.log('Session is valid, navigating to dashboard');
+                navigate('/dashboard');
+              } else {
+                console.log('Session is expired or about to expire, not navigating');
+                // Force a sign out
+                await supabase.auth.signOut();
+              }
+            } else {
+              navigate('/dashboard');
+            }
           }
         } else {
           setUserRole(null);
