@@ -32,10 +32,63 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<'user' | 'admin' | 'super_admin' | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
   const navigate = useNavigate();
+
+  // CRITICAL: Set loading to false and default role immediately if we have a user
+  useEffect(() => {
+    if (user) {
+      console.log('User exists, setting loading to false immediately');
+      setLoading(false);
+      
+      // Also ensure we have a role
+      if (!userRole) {
+        console.log('User exists but no role, setting default role');
+        setUserRole('user');
+      }
+    }
+  }, [user, userRole]);
 
   useEffect(() => {
     let mounted = true;
+    
+    // Skip if already initialized
+    if (isInitialized) {
+      console.log('Already initialized, skipping auth setup');
+      setLoading(false);
+      return;
+    }
+    
+    // Quick check for existing auth state
+    supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
+      if (!mounted) return;
+      
+      if (existingSession?.user) {
+        console.log('Found existing session on mount:', existingSession.user.id);
+        setSession(existingSession);
+        setUser(existingSession.user);
+        
+        // Set default role immediately if not already set
+        if (!userRole) {
+          console.log('Setting default role for existing session');
+          setUserRole('user');
+        }
+        
+        // CRITICAL: Set loading to false immediately for existing sessions
+        console.log('Setting loading to false for existing session');
+        setLoading(false);
+        setIsInitialized(true);
+      } else if (!user) {
+        // Only set loading to false if we don't have a user
+        console.log('No session and no user, setting loading to false');
+        setLoading(false);
+        setIsInitialized(true);
+      }
+    }).catch((error) => {
+      console.error('Error checking initial session:', error);
+      setLoading(false);
+      setIsInitialized(true);
+    });
     
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -48,12 +101,58 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Only fetch user data for specific events to avoid excessive API calls
-          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-            await Promise.all([
-              fetchUserRole(session.user.id),
-              fetchUserProfile(session.user.id)
-            ]);
+          // Fetch user data for specific events to avoid excessive API calls
+          // Include INITIAL_SESSION to handle existing logged-in users (e.g., Google OAuth on page refresh)
+          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+            console.log('Fetching user role and profile for event:', event, 'user:', session.user.id);
+            
+            // Set a default role immediately to prevent blocking
+            if (!userRole) {
+              console.log('Setting immediate fallback role while fetching from database');
+              setUserRole('user');
+            }
+            
+            // CRITICAL: Set loading to false immediately for SIGNED_IN events
+            // Don't wait for database queries to complete
+            if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+              console.log('Setting loading to false IMMEDIATELY for event:', event);
+              setLoading(false);
+            }
+            
+            // Fetch user data in background (non-blocking)
+            try {
+              // Add a timeout for the entire operation
+              const fetchTimeout = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('User data fetch timeout')), 5000); // Reduced to 5 seconds
+              });
+              
+              const fetchPromise = Promise.all([
+                fetchUserRole(session.user.id),
+                fetchUserProfile(session.user.id)
+              ]);
+              
+              // Don't await - let it run in background
+              Promise.race([fetchPromise, fetchTimeout])
+                .then(() => {
+                  console.log('User role and profile fetching completed successfully');
+                })
+                .catch((error) => {
+                  console.error('Error fetching user data (non-blocking):', error);
+                  // Ensure we always have a role set
+                  if (!userRole) {
+                    console.log('Setting fallback user role due to fetch error');
+                    setUserRole('user');
+                  }
+                });
+            } catch (error) {
+              console.error('Error starting user data fetch:', error);
+              if (!userRole) {
+                setUserRole('user');
+              }
+            }
+          } else {
+            // For other events, still set loading to false if needed
+            setLoading(false);
           }
           
           // Navigate to dashboard after successful sign in (but not on initial session or token refresh)
@@ -63,39 +162,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           setUserRole(null);
           setUserProfile(null);
-        }
-        
-        // Set loading to false for initial session and after successful sign in
-        if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
-          setLoading(false);
+          // Set loading to false even when no session
+          if (event === 'INITIAL_SESSION') {
+            setLoading(false);
+          }
         }
       }
     );
 
-    // Get initial session - this will trigger INITIAL_SESSION event
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-      
-      // The auth state change listener will handle the session
-      // We don't need to duplicate the logic here
-      if (!session) {
-        setLoading(false);
-      }
-    });
+    // Note: Initial session is now handled by initializeAuth() above
 
     return () => {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [isInitialized]);
 
   const createUserRecord = async (userId: string) => {
     try {
       const { data: userData } = await supabase.auth.getUser();
       const user = userData.user;
       
-      if (!user) return;
+      if (!user) {
+        console.error('No user data available for creating user record');
+        setUserRole('user');
+        return;
+      }
 
+      console.log('Creating user record for:', user.email);
       const { error } = await supabase
         .from('users')
         .insert({
@@ -108,24 +202,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('Error creating user record:', error);
-        setUserRole('user'); // Set default role even if creation fails
+        // Even if creation fails, set the role so user can proceed
+        setUserRole('user');
       } else {
         console.log('User record created successfully');
         setUserRole('user');
       }
     } catch (error) {
       console.error('Failed to create user record:', error);
+      // Always set a role so the user isn't stuck in loading
       setUserRole('user');
     }
   };
 
   const fetchUserRole = async (userId: string) => {
+    console.log('Starting fetchUserRole for user:', userId);
+    
     try {
-      const { data, error } = await supabase
+      // Add a timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Database query timeout')), 10000); // 10 second timeout
+      });
+      
+      const queryPromise = supabase
         .from('users')
         .select('role')
         .eq('id', userId)
         .single();
+      
+      console.log('Executing database query for user role...');
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+      console.log('Database query completed. Data:', data, 'Error:', error);
 
       if (error) {
         console.error('Error fetching user role:', error);
@@ -134,32 +241,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (error.code === 'PGRST116') {
           console.log('User not found in users table, creating with default role...');
           await createUserRecord(userId);
-          return;
+          return; // createUserRecord will set the role
         }
         
         // For other errors, set default role
+        console.log('Setting default role due to error:', error);
         setUserRole('user');
         return;
       }
 
-      if (data) {
-        console.log('User role fetched:', data.role);
+      if (data && data.role) {
+        console.log('User role fetched successfully:', data.role);
         setUserRole(data.role as 'user' | 'admin' | 'super_admin');
+      } else {
+        // If no role found, set default
+        console.log('No role found in data, setting default role');
+        setUserRole('user');
       }
     } catch (error) {
       console.error('Failed to fetch user role:', error);
       // Set default role on error
+      console.log('Setting default user role due to catch block');
       setUserRole('user');
     }
+    
+    console.log('fetchUserRole completed for user:', userId);
   };
 
   const fetchUserProfile = async (userId: string) => {
+    console.log('Starting fetchUserProfile for user:', userId);
+    
     try {
-      const { data, error } = await supabase
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Profile query timeout')), 10000);
+      });
+      
+      const queryPromise = supabase
         .from('users')
         .select('display_name, avatar_url')
         .eq('id', userId)
         .single();
+      
+      console.log('Executing database query for user profile...');
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
 
       if (error) {
         console.error('Error fetching user profile:', error);
@@ -187,6 +312,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Failed to fetch user profile:', error);
     }
+    
+    console.log('fetchUserProfile completed for user:', userId);
   };
 
   const signIn = async (email: string, password: string) => {

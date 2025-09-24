@@ -18,37 +18,45 @@ import SuperAdminDashboard from '@/components/dashboards/SuperAdminDashboard';
 const Dashboard: React.FC = () => {
   const { user, userRole, signOut, loading: authLoading } = useAuth();
   const [formTemplates, setFormTemplates] = useState<Tables<'form_templates'>[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Start with false - we'll only set true if needed
 
   useEffect(() => {
     const fetchFormTemplates = async () => {
       try {
-        const { data, error } = await supabase
+        // Add timeout to prevent hanging
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Form templates fetch timeout')), 5000);
+        });
+        
+        const queryPromise = supabase
           .from('form_templates')
           .select('*');
         
-        if (error) throw error;
+        const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
         
-        if (data) {
+        if (error) {
+          console.error('Error fetching form templates:', error);
+        } else if (data) {
           setFormTemplates(data);
         }
       } catch (error) {
         console.error('Error fetching form templates:', error);
-      } finally {
-        setLoading(false);
       }
     };
 
-    fetchFormTemplates();
-  }, []);
+    // Only fetch if we have a user - but don't block rendering
+    if (user) {
+      fetchFormTemplates();
+    }
+  }, [user]);
 
   const getUserInitials = () => {
     if (!user?.email) return 'U';
     return user.email.substring(0, 2).toUpperCase();
   };
 
-  const getRoleBadgeColor = () => {
-    switch (userRole) {
+  const getRoleBadgeColor = (role: string) => {
+    switch (role) {
       case 'super_admin':
         return 'bg-gradient-to-r from-purple-500 to-pink-500 text-white';
       case 'admin':
@@ -58,8 +66,8 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const getDashboardTitle = () => {
-    switch (userRole) {
+  const getDashboardTitle = (role: string) => {
+    switch (role) {
       case 'super_admin':
         return 'Super Admin Dashboard';
       case 'admin':
@@ -69,8 +77,22 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  // Show loading if auth is still loading or if we don't have user role yet
-  if (authLoading || loading || !user || userRole === null) {
+  // No need for timeout - we're not blocking on role loading anymore
+
+  // Show loading only if auth is loading or we don't have a user
+  // Don't wait for userRole - we have a fallback
+  const shouldShowLoading = authLoading || !user;
+  
+  // Debug logging
+  console.log('Dashboard render state:', {
+    authLoading,
+    loading,
+    user: !!user,
+    userRole,
+    shouldShowLoading
+  });
+  
+  if (shouldShowLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
         <div className="text-center space-y-4">
@@ -83,6 +105,9 @@ const Dashboard: React.FC = () => {
       </div>
     );
   }
+
+  // If we have a user but no role (and auth is not loading), default to 'user' role
+  const effectiveUserRole = userRole || 'user';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -108,19 +133,19 @@ const Dashboard: React.FC = () => {
               <UserAvatar />
               
               <div className="hidden sm:block">
-                <Badge className={`text-xs ${getRoleBadgeColor()}`}>
-                  {userRole?.replace('_', ' ').toUpperCase()}
+                <Badge className={`text-xs ${getRoleBadgeColor(effectiveUserRole)}`}>
+                  {effectiveUserRole?.replace('_', ' ').toUpperCase()}
                 </Badge>
               </div>
 
               <div className="flex items-center space-x-1 sm:space-x-2">
-                {userRole === 'super_admin' && (
+                {effectiveUserRole === 'super_admin' && (
                   <Button variant="outline" size="icon" className="sm:hidden">
                     <Settings className="h-4 w-4" />
                   </Button>
                 )}
                 
-                {userRole === 'super_admin' && (
+                {effectiveUserRole === 'super_admin' && (
                   <Button variant="outline" size="sm" className="hidden sm:flex">
                     <Settings className="h-4 w-4 mr-2" />
                     Settings
@@ -152,11 +177,11 @@ const Dashboard: React.FC = () => {
                   Welcome back, {user?.user_metadata?.full_name || user?.email?.split('@')[0]}! 👋
                 </h2>
                 <p className="text-slate-600 text-base sm:text-lg">
-                  {getDashboardTitle()}
+                  {getDashboardTitle(effectiveUserRole)}
                 </p>
               </div>
               
-              {userRole === 'super_admin' && (
+              {effectiveUserRole === 'super_admin' && (
                 <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg w-full sm:w-auto">
                   <Plus className="h-4 w-4 mr-2" />
                   Create New Form
@@ -169,15 +194,15 @@ const Dashboard: React.FC = () => {
         {/* Dashboard Content */}
         <Card className="bg-white/70 backdrop-blur-sm border-white/20 shadow-xl">
           <CardContent className="p-4 sm:p-6 md:p-8">
-            {userRole === 'super_admin' && (
+            {effectiveUserRole === 'super_admin' && (
               <SuperAdminDashboard />
             )}
             
-            {userRole === 'admin' && (
+            {effectiveUserRole === 'admin' && (
               <AdminDashboard />
             )}
             
-            {userRole === 'user' && (
+            {effectiveUserRole === 'user' && (
               <UserDashboard formTemplates={formTemplates} />
             )}
           </CardContent>
