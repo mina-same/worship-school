@@ -16,7 +16,7 @@ import AdminDashboard from '@/components/dashboards/AdminDashboard';
 import SuperAdminDashboard from '@/components/dashboards/SuperAdminDashboard';
 
 const Dashboard: React.FC = () => {
-  const { user, userRole, signOut } = useAuth();
+  const { user, userRole, signOut, loading: authLoading } = useAuth();
   const [formTemplates, setFormTemplates] = useState<Tables<'form_templates'>[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -69,12 +69,16 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  if (loading) {
+  // Show loading if auth is still loading or if we don't have user role yet
+  if (authLoading || loading || !user || userRole === null) {
     return (
       <div className="flex h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
         <div className="text-center space-y-4">
           <div className="h-16 w-16 mx-auto animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
           <p className="text-slate-600 font-medium">Loading your dashboard...</p>
+          <p className="text-slate-400 text-sm">
+            {authLoading ? 'Authenticating...' : !user ? 'Loading user...' : userRole === null ? 'Loading user role...' : 'Loading dashboard...'}
+          </p>
         </div>
       </div>
     );

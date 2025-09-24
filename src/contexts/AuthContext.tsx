@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -26,7 +26,7 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -55,13 +55,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               fetchUserProfile(session.user.id)
             ]);
           }
+          
+          // Navigate to dashboard after successful sign in (but not on initial session or token refresh)
+          if (event === 'SIGNED_IN') {
+            navigate('/dashboard');
+          }
         } else {
           setUserRole(null);
           setUserProfile(null);
         }
         
-        // Only set loading to false after initial session check
-        if (event === 'INITIAL_SESSION') {
+        // Set loading to false for initial session and after successful sign in
+        if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
           setLoading(false);
         }
       }
@@ -84,6 +89,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
+  const createUserRecord = async (userId: string) => {
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData.user;
+      
+      if (!user) return;
+
+      const { error } = await supabase
+        .from('users')
+        .insert({
+          id: userId,
+          email: user.email,
+          display_name: user.user_metadata?.full_name || user.email?.split('@')[0],
+          role: 'user',
+          avatar_url: user.user_metadata?.avatar_url
+        });
+
+      if (error) {
+        console.error('Error creating user record:', error);
+        setUserRole('user'); // Set default role even if creation fails
+      } else {
+        console.log('User record created successfully');
+        setUserRole('user');
+      }
+    } catch (error) {
+      console.error('Failed to create user record:', error);
+      setUserRole('user');
+    }
+  };
+
   const fetchUserRole = async (userId: string) => {
     try {
       const { data, error } = await supabase
@@ -94,14 +129,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('Error fetching user role:', error);
+        
+        // If user doesn't exist in users table, create them with default role
+        if (error.code === 'PGRST116') {
+          console.log('User not found in users table, creating with default role...');
+          await createUserRecord(userId);
+          return;
+        }
+        
+        // For other errors, set default role
+        setUserRole('user');
         return;
       }
 
       if (data) {
+        console.log('User role fetched:', data.role);
         setUserRole(data.role as 'user' | 'admin' | 'super_admin');
       }
     } catch (error) {
       console.error('Failed to fetch user role:', error);
+      // Set default role on error
+      setUserRole('user');
     }
   };
 
@@ -115,10 +163,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) {
         console.error('Error fetching user profile:', error);
+        // If user doesn't exist, we'll get the profile from auth metadata
+        if (error.code === 'PGRST116') {
+          const { data: userData } = await supabase.auth.getUser();
+          const user = userData.user;
+          if (user) {
+            setUserProfile({
+              display_name: user.user_metadata?.full_name || user.email?.split('@')[0],
+              avatar_url: user.user_metadata?.avatar_url
+            });
+          }
+        }
         return;
       }
 
       if (data) {
+        console.log('User profile fetched:', data);
         setUserProfile({
           display_name: data.display_name,
           avatar_url: data.avatar_url
