@@ -35,38 +35,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Set up auth state listener FIRST
+    let mounted = true;
+    
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
+        if (!mounted) return;
+        
+        console.log('Auth state change:', event, session?.user?.id);
+        
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Fetch user role and profile after setting session
-          setTimeout(() => {
-            fetchUserRole(session.user.id);
-            fetchUserProfile(session.user.id);
-          }, 0);
+          // Only fetch user data for specific events to avoid excessive API calls
+          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+            await Promise.all([
+              fetchUserRole(session.user.id),
+              fetchUserProfile(session.user.id)
+            ]);
+          }
         } else {
           setUserRole(null);
           setUserProfile(null);
         }
+        
+        // Only set loading to false after initial session check
+        if (event === 'INITIAL_SESSION') {
+          setLoading(false);
+        }
       }
     );
 
-    // THEN check for existing session
+    // Get initial session - this will trigger INITIAL_SESSION event
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+      if (!mounted) return;
       
-      if (session?.user) {
-        fetchUserRole(session.user.id);
-        fetchUserProfile(session.user.id);
+      // The auth state change listener will handle the session
+      // We don't need to duplicate the logic here
+      if (!session) {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const fetchUserRole = async (userId: string) => {
@@ -122,11 +137,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
-        toast({
-          title: "Login failed",
-          description: error.message,
-          variant: "destructive"
-        });
+        // Handle rate limiting specifically
+        if (error.message?.includes('429') || error.message?.includes('Too Many Requests')) {
+          toast({
+            title: "Too many login attempts",
+            description: "Please wait a few minutes before trying again.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Login failed",
+            description: error.message,
+            variant: "destructive"
+          });
+        }
         return { error };
       }
 
@@ -141,8 +165,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
       
       return {};
-    } catch (error) {
+    } catch (error: any) {
       console.error('Sign in error:', error);
+      
+      // Additional rate limiting check
+      if (error?.status === 429) {
+        toast({
+          title: "Rate limit exceeded",
+          description: "Please wait a few minutes before trying to sign in again.",
+          variant: "destructive"
+        });
+      }
+      
       return { error };
     }
   };
@@ -157,15 +191,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (error) {
-        toast({
-          title: "Google login failed",
-          description: error.message,
-          variant: "destructive"
-        });
+        // Handle rate limiting specifically
+        if (error.message?.includes('429') || error.message?.includes('Too Many Requests')) {
+          toast({
+            title: "Too many login attempts",
+            description: "Please wait a few minutes before trying again.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Google login failed",
+            description: error.message,
+            variant: "destructive"
+          });
+        }
         throw error;
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Google sign in error:', error);
+      
+      // Additional rate limiting check
+      if (error?.status === 429) {
+        toast({
+          title: "Rate limit exceeded",
+          description: "Please wait a few minutes before trying to sign in again.",
+          variant: "destructive"
+        });
+      }
     }
   };
 
