@@ -159,8 +159,22 @@ const SubmissionsTable: React.FC<SubmissionsTableProps> = ({ submissions, admins
 
   const calculateProgress = (submission: Submission) => {
     if (!submission.form_template.fields || !submission.form_data) return 0;
-    const totalFields = submission.form_template.fields.length;
-    const filledFields = Object.keys(submission.form_data).length;
+    
+    // Filter out header and separator fields as they don't require answers
+    const answerableFields = submission.form_template.fields.filter(
+      field => field.type !== 'header' && field.type !== 'separator'
+    );
+    
+    const totalFields = answerableFields.length;
+    if (totalFields === 0) return 100; // If no answerable fields, consider it complete
+    
+    // Count only filled fields that correspond to answerable fields
+    const filledFields = answerableFields.filter(
+      field => submission.form_data[field.id] !== undefined && 
+               submission.form_data[field.id] !== '' &&
+               submission.form_data[field.id] !== null
+    ).length;
+    
     return Math.round((filledFields / totalFields) * 100);
   };
 

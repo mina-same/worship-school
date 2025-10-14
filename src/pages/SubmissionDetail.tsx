@@ -450,12 +450,12 @@ const SubmissionDetail: React.FC = () => {
           {value ? (
             <>
               <Check className="h-4 w-4 text-green-600" />
-              <span className="text-green-600 font-medium">True</span>
+              <span className="text-green-600 font-medium">نعم</span>
             </>
           ) : (
             <>
               <X className="h-4 w-4 text-red-600" />
-              <span className="text-red-600 font-medium">False</span>
+              <span className="text-red-600 font-medium">لا</span>
             </>
           )}
         </div>
@@ -465,26 +465,26 @@ const SubmissionDetail: React.FC = () => {
     // Handle string representations of booleans
     if (typeof value === 'string') {
       const lowerValue = value.toLowerCase();
-      if (lowerValue === 'true' || lowerValue === 'yes') {
+      if (lowerValue === 'true' || lowerValue === 'yes' || lowerValue === 'نعم') {
         return (
           <div className="flex items-center gap-2">
             <Check className="h-4 w-4 text-green-600" />
-            <span className="text-green-600 font-medium">True</span>
+            <span className="text-green-600 font-medium">نعم</span>
           </div>
         );
       }
-      if (lowerValue === 'false' || lowerValue === 'no') {
+      if (lowerValue === 'false' || lowerValue === 'no' || lowerValue === 'لا') {
         return (
           <div className="flex items-center gap-2">
             <X className="h-4 w-4 text-red-600" />
-            <span className="text-red-600 font-medium">False</span>
+            <span className="text-red-600 font-medium">لا</span>
           </div>
         );
       }
     }
     
-    // Default: return the value as-is
-    return value;
+    // Default: return the value as-is with RTL support
+    return <span className="whitespace-pre-wrap" dir="rtl">{value}</span>;
   };
 
   if (loading) {
@@ -563,28 +563,80 @@ const SubmissionDetail: React.FC = () => {
                   const canView = canViewSensitiveField(field);
                   const hasAnswer = value !== undefined && value !== '';
                   
+                  // Handle header fields differently
+                  if (field.type === 'header') {
+                    const HeaderTag = `h${field.headerLevel || 2}` as keyof JSX.IntrinsicElements;
+                    const headerSizes = {
+                      1: 'text-4xl font-bold',
+                      2: 'text-3xl font-semibold',
+                      3: 'text-2xl font-semibold',
+                      4: 'text-xl font-medium',
+                      5: 'text-lg font-medium',
+                      6: 'text-base font-medium'
+                    };
+                    
+                    return (
+                      <div key={field.id} className="mb-6">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                            Header
+                          </Badge>
+                        </div>
+                        <HeaderTag className={`${headerSizes[field.headerLevel || 2]} text-slate-800 leading-tight whitespace-pre-wrap text-right`} dir="rtl">
+                          {field.label}
+                        </HeaderTag>
+                        {field.description && (
+                          <p className="text-slate-600 text-sm leading-relaxed text-right whitespace-pre-wrap mt-2" dir="rtl">
+                            {field.description}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  }
+                  
+                  // Handle separator fields differently
+                  if (field.type === 'separator') {
+                    return (
+                      <div key={field.id} className="mb-6">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge variant="outline" className="text-xs bg-gray-50 text-gray-700 border-gray-200">
+                            Separator
+                          </Badge>
+                        </div>
+                        <div className="relative">
+                          <div className="absolute inset-0 flex items-center">
+                            <div className="w-full border-t border-slate-300"></div>
+                          </div>
+                          {field.label && (
+                            <div className="relative flex justify-center">
+                              <span className="bg-white px-4 text-sm text-slate-500 font-medium whitespace-pre-wrap text-right" dir="rtl">
+                                {field.label}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+                  
+                  // Handle regular input fields
                   return (
                     <div key={field.id} className="mb-4">
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="text-sm font-medium">{field.label}</div>
+                      <div className="flex items-center justify-end gap-2 mb-2">
                         {field.sensitive && (
                           <Badge variant="outline" className="text-xs flex items-center gap-1">
                             <Lock className="h-3 w-3" />
                             Sensitive
                           </Badge>
                         )}
-                      </div>
-                      
-                      {/* Always show the question */}
-                      <div className="text-sm text-slate-600 mb-2">
-                        Question: {field.label}
+                        <div className="text-sm font-medium text-right" dir="rtl">{field.label}</div>
                       </div>
                       
                       {/* Show answer based on permissions */}
                       {hasAnswer ? (
                         canView ? (
-                          <div className="p-2 bg-slate-50 rounded border">
-                            <span className="text-sm font-medium">Answer: </span>
+                          <div className="p-2 bg-slate-50 rounded border text-right" dir="rtl">
+                            <div className="text-sm font-medium mb-2">إجابة:</div>
                             {isFileOrImage(field.type) ? (
                               <div>
                                 <div className="text-sm mb-2">
@@ -593,20 +645,22 @@ const SubmissionDetail: React.FC = () => {
                                 {renderFileOrImageField(field, value)}
                               </div>
                             ) : (
-                              renderValue(value, field.type)
+                              <div>
+                                {renderValue(value, field.type)}
+                              </div>
                             )}
                           </div>
                         ) : (
                           <div className="p-2 bg-slate-50 rounded border">
-                            <div className="flex items-center gap-2 text-slate-500 italic">
+                            <div className="flex items-center gap-2 text-slate-500 italic text-right" dir="rtl">
                               <Lock className="h-4 w-4" />
-                              <span className="text-sm">Answer provided - Content restricted due to limited access permissions</span>
+                              <span className="text-sm">تم تقديم إجابة - المحتوى مقيد بسبب صلاحيات الوصول المحدودة</span>
                             </div>
                           </div>
                         )
                       ) : (
-                        <div className="p-2 bg-slate-50 rounded border text-slate-500 text-sm">
-                          No answer provided
+                        <div className="p-2 bg-slate-50 rounded border text-slate-500 text-sm text-right" dir="rtl">
+                          لم يتم تقديم إجابة
                         </div>
                       )}
                     </div>
