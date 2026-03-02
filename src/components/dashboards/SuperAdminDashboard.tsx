@@ -42,7 +42,7 @@ const SuperAdminDashboard: React.FC = () => {
         .from('submissions')
         .select(`
           *,
-          user:users!inner(email, role),
+          user:users!inner(email, display_name, role),
           form_template:form_templates(name, fields),
           admin_notes(
             id,

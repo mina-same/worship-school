@@ -1,0 +1,28 @@
+{
+  "name": "The School of Worship",
+  "short_name": "Worship School",
+  "description": "Learning Management System for Worship Education",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/lovable-uploads/ba046b16-2bfb-41f1-ba19-d00e99b4fd9f.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/lovable-uploads/ba046b16-2bfb-41f1-ba19-d00e99b4fd9f.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "productivity"],
+  "lang": "en",
+  "dir": "ltr"
+}

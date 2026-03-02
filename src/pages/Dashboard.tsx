@@ -2,13 +2,13 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tables } from '@/integrations/supabase/types';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { LogOut, Settings, Users, FileText, Plus } from 'lucide-react';
+import { LogOut, Settings, FileText, Plus } from 'lucide-react';
 import UserAvatar from '@/components/UserAvatar';
+import BottomNavigation from '@/components/BottomNavigation';
 
 // Import components for different dashboards
 import UserDashboard from '@/components/dashboards/UserDashboard';
@@ -110,53 +110,58 @@ const Dashboard: React.FC = () => {
   const effectiveUserRole = userRole || 'user';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-20 md:pb-0">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-slate-200/60 shadow-sm">
+      <header className="sticky top-0 z-40 border-b border-white/20 bg-white/70 backdrop-blur-xl shadow-[0_1px_0_0_rgba(15,23,42,0.06)]">
         <div className="container mx-auto px-4 sm:px-6">
-          <div className="flex h-20 items-center justify-between">
-            {/* Logo and Title */}
-            <div className="flex items-center space-x-2 sm:space-x-4">
-              <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg">
+          <div className="flex items-center justify-between py-3 md:py-4">
+            <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+              <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 ring-1 ring-white/30">
                 <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
               </div>
-              <div>
-                <h1 className="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent truncate max-w-[180px] sm:max-w-none">
+              <div className="min-w-0">
+                <h1 className="text-base sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent truncate">
                   The School of Worship
                 </h1>
-                <p className="text-xs sm:text-sm text-slate-500 font-medium hidden xs:block">Learning Management System</p>
+                <p className="text-xs sm:text-sm text-slate-500 font-medium hidden sm:block">Learning Management System</p>
               </div>
             </div>
 
-            {/* User Avatar and Info */}
-            <div className="flex items-center space-x-2 sm:space-x-4">
-              <UserAvatar />
-              
-              <div className="hidden sm:block">
-                <Badge className={`text-xs ${getRoleBadgeColor(effectiveUserRole)}`}>
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="hidden sm:flex items-center gap-2">
+                <Badge className={`text-[10px] sm:text-xs ${getRoleBadgeColor(effectiveUserRole)} shadow-sm`}> 
                   {effectiveUserRole?.replace('_', ' ').toUpperCase()}
                 </Badge>
               </div>
 
-              <div className="flex items-center space-x-1 sm:space-x-2">
+              <UserAvatar />
+
+              <div className="flex items-center gap-1 sm:gap-2">
                 {effectiveUserRole === 'super_admin' && (
-                  <Button variant="outline" size="icon" className="sm:hidden">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9 border-slate-200/80 bg-white/80 hover:bg-white"
+                  >
                     <Settings className="h-4 w-4" />
                   </Button>
                 )}
-                
-                {effectiveUserRole === 'super_admin' && (
-                  <Button variant="outline" size="sm" className="hidden sm:flex">
-                    <Settings className="h-4 w-4 mr-2" />
-                    Settings
-                  </Button>
-                )}
-                
-                <Button variant="outline" size="icon" onClick={signOut} className="text-red-600 hover:text-red-700 hover:bg-red-50 sm:hidden">
+
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={signOut}
+                  className="h-9 w-9 border-slate-200/80 bg-white/80 text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
                   <LogOut className="h-4 w-4" />
                 </Button>
-                
-                <Button variant="outline" size="sm" onClick={signOut} className="text-red-600 hover:text-red-700 hover:bg-red-50 hidden sm:flex">
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={signOut}
+                  className="hidden sm:flex h-9 border-slate-200/80 bg-white/80 text-red-600 hover:text-red-700 hover:bg-red-50"
+                >
                   <LogOut className="h-4 w-4 mr-2" />
                   Sign Out
                 </Button>
@@ -208,6 +213,9 @@ const Dashboard: React.FC = () => {
           </CardContent>
         </Card>
       </main>
+      
+      {/* Bottom Navigation - Mobile Only */}
+      <BottomNavigation />
     </div>
   );
 };

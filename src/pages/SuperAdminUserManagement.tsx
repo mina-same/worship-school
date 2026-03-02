@@ -17,7 +17,7 @@ const SuperAdminUserManagement: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('*')
+        .select('id, email, display_name, avatar_url')
         .eq('role', 'admin');
 
       if (error) throw error;
@@ -79,6 +79,8 @@ const SuperAdminUserManagement: React.FC = () => {
                         key={admin.id}
                         adminId={admin.id}
                         adminEmail={admin.email}
+                        adminDisplayName={admin.display_name}
+                        adminAvatarUrl={admin.avatar_url}
                         currentAccessLevel={admin.metadata?.access_level || 'partial'}
                         onAccessLevelChange={fetchAdmins}
                       />

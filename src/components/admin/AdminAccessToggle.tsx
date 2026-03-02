@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { Shield, Eye, EyeOff } from 'lucide-react';
@@ -12,6 +13,8 @@ import { Shield, Eye, EyeOff } from 'lucide-react';
 interface AdminAccessToggleProps {
   adminId: string;
   adminEmail: string;
+  adminDisplayName?: string;
+  adminAvatarUrl?: string;
   currentAccessLevel: 'full' | 'partial';
   onAccessLevelChange: () => void;
 }
@@ -19,6 +22,8 @@ interface AdminAccessToggleProps {
 export const AdminAccessToggle: React.FC<AdminAccessToggleProps> = ({
   adminId,
   adminEmail,
+  adminDisplayName,
+  adminAvatarUrl,
   currentAccessLevel,
   onAccessLevelChange
 }) => {
@@ -62,12 +67,32 @@ export const AdminAccessToggle: React.FC<AdminAccessToggleProps> = ({
       <CardContent className="p-3 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 flex items-center justify-center text-white font-medium">
-              {adminEmail.substring(0, 2).toUpperCase()}
-            </div>
+            <Avatar className="h-10 w-10 border-2 border-primary/20">
+              <AvatarImage 
+                src={adminAvatarUrl} 
+                alt={adminDisplayName || adminEmail}
+                className="object-cover"
+                referrerPolicy="no-referrer"
+                crossOrigin="anonymous"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+              <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                {adminDisplayName 
+                  ? adminDisplayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                  : adminEmail.substring(0, 2).toUpperCase()
+                }
+              </AvatarFallback>
+            </Avatar>
             <div>
-              <p className="font-medium text-slate-800">{adminEmail}</p>
-              <div className="flex items-center gap-2">
+              <p className="font-medium text-slate-800">
+                {adminDisplayName || 'Unknown User'}
+              </p>
+              <p className="text-sm text-slate-600 truncate">
+                {adminEmail}
+              </p>
+              <div className="flex items-center gap-2 mt-1">
                 <Badge variant="outline" className="flex items-center gap-1">
                   <Shield className="h-3 w-3" />
                   Admin

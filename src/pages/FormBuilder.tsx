@@ -248,18 +248,18 @@ const FormBuilder: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4">
+    <div className="min-h-screen bg-slate-50 px-3 sm:px-4 py-4 sm:py-6">
       <div className="mx-auto max-w-4xl">
-        <Button variant="outline" className="mb-4" onClick={() => navigate('/dashboard')}>
+        <Button variant="outline" className="mb-4 sm:mb-6" onClick={() => navigate('/dashboard')}>
           Back to Dashboard
         </Button>
         
-        <Card>
-          <CardHeader>
-            <CardTitle>{templateId ? 'Edit Form Template' : 'Create Form Template'}</CardTitle>
+        <Card className="shadow-sm">
+          <CardHeader className="pb-4 sm:pb-6">
+            <CardTitle className="text-xl sm:text-2xl">{templateId ? 'Edit Form Template' : 'Create Form Template'}</CardTitle>
           </CardHeader>
           
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-6 px-4 sm:px-6">
             <FormBuilderHeader
               formName={formName}
               onFormNameChange={setFormName}
@@ -270,15 +270,15 @@ const FormBuilder: React.FC = () => {
               formId={templateId}
             />
             
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
+            <div className="space-y-3 sm:space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <h3 className="text-lg font-medium">Form Fields</h3>
-                <Button onClick={addField} size="sm" variant="outline">
+                <Button onClick={addField} size="sm" variant="outline" className="w-full sm:w-auto">
                   <PlusCircle className="mr-2 h-4 w-4" /> Add Field
                 </Button>
               </div>
               
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 {fields.map((field, index) => (
                   <FieldEditor
                     key={field.id}
@@ -295,8 +295,8 @@ const FormBuilder: React.FC = () => {
                 ))}
                 
                 {fields.length === 0 && (
-                  <div className="flex h-24 items-center justify-center rounded-lg border-2 border-dashed">
-                    <p className="text-muted-foreground">
+                  <div className="flex h-24 sm:h-32 items-center justify-center rounded-lg border-2 border-dashed px-4">
+                    <p className="text-muted-foreground text-center text-sm sm:text-base">
                       No fields added yet. Click "Add Field" to start building your form.
                     </p>
                   </div>
@@ -305,10 +305,11 @@ const FormBuilder: React.FC = () => {
             </div>
           </CardContent>
           
-          <CardFooter className="flex justify-end">
+          <CardFooter className="flex flex-col sm:flex-row gap-3 justify-end px-4 sm:px-6 py-4 sm:py-6">
             <Button 
               onClick={saveForm} 
               disabled={saving || !formName.trim() || fields.length === 0}
+              className="w-full sm:w-auto"
             >
               {saving ? 'Saving...' : templateId ? 'Update Form' : 'Create Form'}
             </Button>

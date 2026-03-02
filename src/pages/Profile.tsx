@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { User, Mail, Save, Camera } from 'lucide-react';
+import BottomNavigation from '@/components/BottomNavigation';
 
 const Profile: React.FC = () => {
   const { user, userProfile, updateProfile, uploadAvatar } = useAuth();
@@ -61,27 +62,28 @@ const Profile: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-2xl">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-foreground">Profile Settings</h1>
-        <p className="text-muted-foreground mt-2">Manage your account information and preferences</p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pb-20 md:pb-0">
+      <div className="container mx-auto px-4 py-8 max-w-2xl">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-foreground">Profile Settings</h1>
+          <p className="text-muted-foreground mt-2">Manage your account information and preferences</p>
+        </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="h-5 w-5 text-primary" />
-            Account Information
-          </CardTitle>
-          <CardDescription>
-            Update your profile picture and display name
-          </CardDescription>
-        </CardHeader>
-        
-        <CardContent className="space-y-6">
-          {/* Avatar Section */}
-          <div className="flex flex-col items-center space-y-4">
-            <div className="relative">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5 text-primary" />
+              Account Information
+            </CardTitle>
+            <CardDescription>
+              Update your profile picture and display name
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent className="space-y-6">
+            {/* Avatar Section */}
+            <div className="flex flex-col items-center space-y-4">
+              <div className="relative">
               <Avatar className="h-24 w-24 border-4 border-primary/20">
                 <AvatarImage 
                   src={userProfile?.avatar_url} 
@@ -180,6 +182,10 @@ const Profile: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+      </div>
+      
+      {/* Bottom Navigation - Mobile Only */}
+      <BottomNavigation />
     </div>
   );
 };

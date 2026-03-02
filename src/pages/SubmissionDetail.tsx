@@ -8,12 +8,14 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from '@/components/ui/use-toast';
 import { EyeOff, Lock, Download, FileText, Image as ImageIcon, Check, X } from 'lucide-react';
 
 const SubmissionDetail: React.FC = () => {
   const { submissionId } = useParams();
-  const { user, userRole } = useAuth();
+  const { user, userRole, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   
   const [submission, setSubmission] = useState<any>(null);
@@ -24,9 +26,80 @@ const SubmissionDetail: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [adminAccessLevel, setAdminAccessLevel] = useState<'full' | 'partial'>('partial');
 
+  const [effectiveRole, setEffectiveRole] = useState<'user' | 'admin' | 'super_admin' | null>(null);
+  const [roleResolving, setRoleResolving] = useState(true);
+
+  const EVALUATION_PREFIX = 'EVALUATION_JSON:';
+
+  type EvaluationState = {
+    attendance: 'present' | 'absent' | '';
+    homeworkCompleteness: 'كامل' | 'ناقص' | '';
+    memorized: 'مكروت' | 'لا' | '';
+    heard: 'سمع' | 'مسمعش' | '';
+  };
+
+  const [evaluation, setEvaluation] = useState<EvaluationState>({
+    attendance: '',
+    homeworkCompleteness: '',
+    memorized: '',
+    heard: ''
+  });
+  const [savingEvaluation, setSavingEvaluation] = useState(false);
+
   useEffect(() => {
-    // Check if user is admin or super_admin
-    if (userRole && userRole !== 'admin' && userRole !== 'super_admin') {
+    let mounted = true;
+
+    const resolveRole = async () => {
+      if (authLoading) return;
+      if (!user) {
+        if (mounted) {
+          setEffectiveRole(null);
+          setRoleResolving(false);
+        }
+        return;
+      }
+
+      if (userRole === 'admin' || userRole === 'super_admin') {
+        if (mounted) {
+          setEffectiveRole(userRole);
+          setRoleResolving(false);
+        }
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (error) throw error;
+
+        const dbRole = (data?.role as any) || userRole || 'user';
+        if (mounted) {
+          setEffectiveRole(dbRole);
+          setRoleResolving(false);
+        }
+      } catch (e) {
+        if (mounted) {
+          setEffectiveRole(userRole || 'user');
+          setRoleResolving(false);
+        }
+      }
+    };
+
+    resolveRole();
+
+    return () => {
+      mounted = false;
+    };
+  }, [authLoading, user, userRole]);
+
+  useEffect(() => {
+    if (roleResolving) return;
+
+    if (effectiveRole && effectiveRole !== 'admin' && effectiveRole !== 'super_admin') {
       navigate('/dashboard');
       return;
     }
@@ -36,7 +109,7 @@ const SubmissionDetail: React.FC = () => {
         if (!submissionId || !user) return;
 
         // Get admin access level
-        if (userRole === 'admin') {
+        if (effectiveRole === 'admin') {
           const { data: adminData } = await supabase
             .from('users')
             .select('metadata')
@@ -82,6 +155,28 @@ const SubmissionDetail: React.FC = () => {
 
         if (notesError) throw notesError;
         setNotes(notesData || []);
+
+        const evaluationNote = (notesData || []).find((n: any) => {
+          if (!n?.note || typeof n.note !== 'string') return false;
+          if (!n.note.startsWith(EVALUATION_PREFIX)) return false;
+          if (user?.id && n.admin_id && n.admin_id !== user.id) return false;
+          return true;
+        }) || (notesData || []).find((n: any) => typeof n?.note === 'string' && n.note.startsWith(EVALUATION_PREFIX));
+
+        if (evaluationNote?.note && typeof evaluationNote.note === 'string') {
+          try {
+            const raw = evaluationNote.note.slice(EVALUATION_PREFIX.length);
+            const parsed = JSON.parse(raw);
+            setEvaluation({
+              attendance: parsed.attendance || '',
+              homeworkCompleteness: parsed.homeworkCompleteness || '',
+              memorized: parsed.memorized || '',
+              heard: parsed.heard || ''
+            });
+          } catch (e) {
+            // ignore parse error
+          }
+        }
       } catch (error) {
         console.error('Error fetching submission data:', error);
         toast({
@@ -116,7 +211,8 @@ const SubmissionDetail: React.FC = () => {
     return () => {
       supabase.removeChannel(notesChannel);
     };
-  }, [submissionId, user, userRole, navigate]);
+  }, [submissionId, user, effectiveRole, roleResolving, navigate]);
+
 
   const addNote = async () => {
     if (!user || !submissionId || !newNote.trim()) return;
@@ -147,6 +243,90 @@ const SubmissionDetail: React.FC = () => {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const saveEvaluation = async () => {
+    if (!user || !submissionId) return;
+
+    if (!evaluation.attendance) {
+      toast({
+        title: "Missing Data",
+        description: "اختر (حضر / محضرش)",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (evaluation.attendance === 'present') {
+      if (!evaluation.homeworkCompleteness || !evaluation.memorized) {
+        toast({
+          title: "Missing Data",
+          description: "كمّل اختيارات (الواجب كامل/ناقص) و (مكروت/لا)",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+
+    if (evaluation.attendance === 'absent') {
+      if (!evaluation.heard || !evaluation.homeworkCompleteness || !evaluation.memorized) {
+        toast({
+          title: "Missing Data",
+          description: "كمّل اختيارات (سمع/مسمعش) و (كامل/ناقص) و (مكروت/لا)",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+
+    setSavingEvaluation(true);
+    try {
+      const notePayload = `${EVALUATION_PREFIX}${JSON.stringify({
+        attendance: evaluation.attendance,
+        homeworkCompleteness: evaluation.homeworkCompleteness,
+        memorized: evaluation.memorized,
+        heard: evaluation.heard
+      })}`;
+
+      const { data: existing } = await supabase
+        .from('admin_notes')
+        .select('id, note, admin_id')
+        .eq('submission_id', submissionId)
+        .eq('admin_id', user.id)
+        .ilike('note', `${EVALUATION_PREFIX}%`)
+        .maybeSingle();
+
+      if (existing?.id) {
+        const { error } = await supabase
+          .from('admin_notes')
+          .update({ note: notePayload })
+          .eq('id', existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('admin_notes')
+          .insert({
+            submission_id: submissionId,
+            admin_id: user.id,
+            note: notePayload,
+          });
+        if (error) throw error;
+      }
+
+      toast({
+        title: "Saved",
+        description: "تم حفظ التقييم بنجاح"
+      });
+    } catch (error) {
+      console.error('Error saving evaluation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save evaluation",
+        variant: "destructive"
+      });
+    } finally {
+      setSavingEvaluation(false);
     }
   };
 
@@ -669,6 +849,222 @@ const SubmissionDetail: React.FC = () => {
               ) : (
                 <p>No form fields found</p>
               )}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="mb-6 border-0 shadow-xl bg-white/80 backdrop-blur-sm">
+          <CardHeader className="border-b border-slate-100">
+            <div className="flex items-center justify-between gap-4">
+              <CardTitle dir="rtl" className="text-right text-xl sm:text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-600 bg-clip-text text-transparent">
+                التقييم
+              </CardTitle>
+              <div className="flex items-center gap-2" dir="rtl">
+                <Badge variant="outline" className="bg-slate-50">
+                  {evaluation.attendance === 'present' ? 'حضر' : evaluation.attendance === 'absent' ? 'محضرش' : 'غير محدد'}
+                </Badge>
+                {evaluation.attendance && (
+                  <Badge className="bg-indigo-600 hover:bg-indigo-600">
+                    {evaluation.attendance === 'present'
+                      ? `${evaluation.homeworkCompleteness || '...'} / ${evaluation.memorized || '...'}`
+                      : `${evaluation.heard || '...'} / ${evaluation.homeworkCompleteness || '...'} / ${evaluation.memorized || '...'}`
+                    }
+                  </Badge>
+                )}
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-6 sm:space-y-8 p-4 sm:p-6" dir="rtl">
+            <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4 sm:p-5">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <Label className="text-right block text-sm sm:text-base font-semibold text-slate-800">حضر / محضرش</Label>
+                <span className="text-xs text-slate-500">اختيار إلزامي</span>
+              </div>
+
+              <RadioGroup
+                value={evaluation.attendance}
+                onValueChange={(v) => {
+                  const attendance = v as EvaluationState['attendance'];
+                  setEvaluation(prev => ({
+                    ...prev,
+                    attendance,
+                    heard: attendance === 'absent' ? prev.heard : '',
+                    homeworkCompleteness: '',
+                    memorized: ''
+                  }));
+                }}
+                className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+              >
+                <div className="relative">
+                  <RadioGroupItem value="present" id="attendance-present" className="peer sr-only" />
+                  <Label
+                    htmlFor="attendance-present"
+                    className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 cursor-pointer hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors peer-data-[state=checked]:border-indigo-500 peer-data-[state=checked]:bg-indigo-50"
+                  >
+                    <span className="font-semibold text-slate-800">حضر</span>
+                    <span className="text-xs text-slate-500">الحضور تم</span>
+                  </Label>
+                </div>
+
+                <div className="relative">
+                  <RadioGroupItem value="absent" id="attendance-absent" className="peer sr-only" />
+                  <Label
+                    htmlFor="attendance-absent"
+                    className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 cursor-pointer hover:border-rose-300 hover:bg-rose-50/40 transition-colors peer-data-[state=checked]:border-rose-500 peer-data-[state=checked]:bg-rose-50"
+                  >
+                    <span className="font-semibold text-slate-800">محضرش</span>
+                    <span className="text-xs text-slate-500">غياب</span>
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            {evaluation.attendance === 'present' && (
+              <div className="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-4 sm:p-5 space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="font-semibold text-slate-800">لو حضر</div>
+                  <Badge className="bg-indigo-600 hover:bg-indigo-600">حالة الحضور</Badge>
+                </div>
+
+                <div className="space-y-3">
+                  <Label className="text-right block text-sm font-semibold text-slate-800">الواجب (كامل / ناقص)</Label>
+                  <RadioGroup
+                    value={evaluation.homeworkCompleteness}
+                    onValueChange={(v) => setEvaluation(prev => ({ ...prev, homeworkCompleteness: v as any }))}
+                    className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+                  >
+                    <div className="relative">
+                      <RadioGroupItem value="كامل" id="present-homework-full" className="peer sr-only" />
+                      <Label htmlFor="present-homework-full" className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 cursor-pointer hover:border-indigo-300 hover:bg-white transition-colors peer-data-[state=checked]:border-indigo-500 peer-data-[state=checked]:bg-white">
+                        <span className="font-semibold">كامل</span>
+                        <span className="text-xs text-slate-500">مكتمل</span>
+                      </Label>
+                    </div>
+                    <div className="relative">
+                      <RadioGroupItem value="ناقص" id="present-homework-partial" className="peer sr-only" />
+                      <Label htmlFor="present-homework-partial" className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 cursor-pointer hover:border-indigo-300 hover:bg-white transition-colors peer-data-[state=checked]:border-indigo-500 peer-data-[state=checked]:bg-white">
+                        <span className="font-semibold">ناقص</span>
+                        <span className="text-xs text-slate-500">غير مكتمل</span>
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                <div className="space-y-3">
+                  <Label className="text-right block text-sm font-semibold text-slate-800">مكروت (مكروت / لا)</Label>
+                  <RadioGroup
+                    value={evaluation.memorized}
+                    onValueChange={(v) => setEvaluation(prev => ({ ...prev, memorized: v as any }))}
+                    className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+                  >
+                    <div className="relative">
+                      <RadioGroupItem value="مكروت" id="present-memorized-yes" className="peer sr-only" />
+                      <Label htmlFor="present-memorized-yes" className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 cursor-pointer hover:border-indigo-300 hover:bg-white transition-colors peer-data-[state=checked]:border-indigo-500 peer-data-[state=checked]:bg-white">
+                        <span className="font-semibold">مكروت</span>
+                        <span className="text-xs text-slate-500">تم</span>
+                      </Label>
+                    </div>
+                    <div className="relative">
+                      <RadioGroupItem value="لا" id="present-memorized-no" className="peer sr-only" />
+                      <Label htmlFor="present-memorized-no" className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 cursor-pointer hover:border-indigo-300 hover:bg-white transition-colors peer-data-[state=checked]:border-indigo-500 peer-data-[state=checked]:bg-white">
+                        <span className="font-semibold">لا</span>
+                        <span className="text-xs text-slate-500">لم يتم</span>
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              </div>
+            )}
+
+            {evaluation.attendance === 'absent' && (
+              <div className="rounded-2xl border border-rose-100 bg-rose-50/40 p-4 sm:p-5 space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="font-semibold text-slate-800">لو محضرش</div>
+                  <Badge className="bg-rose-600 hover:bg-rose-600">حالة الغياب</Badge>
+                </div>
+
+                <div className="space-y-3">
+                  <Label className="text-right block text-sm font-semibold text-slate-800">سمع (سمع / مسمعش)</Label>
+                  <RadioGroup
+                    value={evaluation.heard}
+                    onValueChange={(v) => setEvaluation(prev => ({ ...prev, heard: v as any }))}
+                    className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+                  >
+                    <div className="relative">
+                      <RadioGroupItem value="سمع" id="absent-heard-yes" className="peer sr-only" />
+                      <Label htmlFor="absent-heard-yes" className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 cursor-pointer hover:border-rose-300 hover:bg-white transition-colors peer-data-[state=checked]:border-rose-500 peer-data-[state=checked]:bg-white">
+                        <span className="font-semibold">سمع</span>
+                        <span className="text-xs text-slate-500">استمع</span>
+                      </Label>
+                    </div>
+                    <div className="relative">
+                      <RadioGroupItem value="مسمعش" id="absent-heard-no" className="peer sr-only" />
+                      <Label htmlFor="absent-heard-no" className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 cursor-pointer hover:border-rose-300 hover:bg-white transition-colors peer-data-[state=checked]:border-rose-500 peer-data-[state=checked]:bg-white">
+                        <span className="font-semibold">مسمعش</span>
+                        <span className="text-xs text-slate-500">لم يستمع</span>
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                <div className="space-y-3">
+                  <Label className="text-right block text-sm font-semibold text-slate-800">الواجب (كامل / ناقص)</Label>
+                  <RadioGroup
+                    value={evaluation.homeworkCompleteness}
+                    onValueChange={(v) => setEvaluation(prev => ({ ...prev, homeworkCompleteness: v as any }))}
+                    className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+                  >
+                    <div className="relative">
+                      <RadioGroupItem value="كامل" id="absent-homework-full" className="peer sr-only" />
+                      <Label htmlFor="absent-homework-full" className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 cursor-pointer hover:border-rose-300 hover:bg-white transition-colors peer-data-[state=checked]:border-rose-500 peer-data-[state=checked]:bg-white">
+                        <span className="font-semibold">كامل</span>
+                        <span className="text-xs text-slate-500">مكتمل</span>
+                      </Label>
+                    </div>
+                    <div className="relative">
+                      <RadioGroupItem value="ناقص" id="absent-homework-partial" className="peer sr-only" />
+                      <Label htmlFor="absent-homework-partial" className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 cursor-pointer hover:border-rose-300 hover:bg-white transition-colors peer-data-[state=checked]:border-rose-500 peer-data-[state=checked]:bg-white">
+                        <span className="font-semibold">ناقص</span>
+                        <span className="text-xs text-slate-500">غير مكتمل</span>
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+
+                <div className="space-y-3">
+                  <Label className="text-right block text-sm font-semibold text-slate-800">مكروت (مكروت / لا)</Label>
+                  <RadioGroup
+                    value={evaluation.memorized}
+                    onValueChange={(v) => setEvaluation(prev => ({ ...prev, memorized: v as any }))}
+                    className="grid grid-cols-1 sm:grid-cols-2 gap-3"
+                  >
+                    <div className="relative">
+                      <RadioGroupItem value="مكروت" id="absent-memorized-yes" className="peer sr-only" />
+                      <Label htmlFor="absent-memorized-yes" className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 cursor-pointer hover:border-rose-300 hover:bg-white transition-colors peer-data-[state=checked]:border-rose-500 peer-data-[state=checked]:bg-white">
+                        <span className="font-semibold">مكروت</span>
+                        <span className="text-xs text-slate-500">تم</span>
+                      </Label>
+                    </div>
+                    <div className="relative">
+                      <RadioGroupItem value="لا" id="absent-memorized-no" className="peer sr-only" />
+                      <Label htmlFor="absent-memorized-no" className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-3 cursor-pointer hover:border-rose-300 hover:bg-white transition-colors peer-data-[state=checked]:border-rose-500 peer-data-[state=checked]:bg-white">
+                        <span className="font-semibold">لا</span>
+                        <span className="text-xs text-slate-500">لم يتم</span>
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                </div>
+              </div>
+            )}
+
+            <div className="pt-2">
+              <Button
+                onClick={saveEvaluation}
+                disabled={savingEvaluation}
+                className="w-full h-11 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white shadow-lg"
+              >
+                {savingEvaluation ? '...جاري الحفظ' : 'حفظ التقييم'}
+              </Button>
             </div>
           </CardContent>
         </Card>

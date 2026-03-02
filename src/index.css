@@ -99,3 +99,21 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .pb-safe-or-0 {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  
+  .pt-safe-or-0 {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+  
+  .pl-safe-or-0 {
+    padding-left: env(safe-area-inset-left, 0);
+  }
+  
+  .pr-safe-or-0 {
+    padding-right: env(safe-area-inset-right, 0);
+  }
+}

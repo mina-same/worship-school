@@ -101,7 +101,7 @@ const SuperAdminForms: React.FC = () => {
       <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10" />
       
       <div className="relative z-10">
-        <div className="mx-auto max-w-7xl px-4 py-8">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           <div className="mb-8">
             <Button 
               variant="outline" 
@@ -112,19 +112,19 @@ const SuperAdminForms: React.FC = () => {
               Back to Dashboard
             </Button>
             
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent mb-4">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent mb-2 sm:mb-4">
                   Form Templates Management
                 </h1>
-                <p className="text-slate-600 text-lg max-w-2xl">
+                <p className="text-slate-600 text-sm sm:text-base lg:text-lg max-w-2xl">
                   View and edit existing form templates
                 </p>
               </div>
               
               <Button 
                 onClick={() => navigate('/form-builder')}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg"
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg w-full sm:w-auto"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Create New Form
@@ -132,16 +132,16 @@ const SuperAdminForms: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {forms.map((form) => (
               <Card key={form.id} className="bg-white/80 backdrop-blur-sm border-white/20 shadow-lg hover:shadow-xl transition-shadow">
                 <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-lg font-semibold text-slate-800 mb-2">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                    <div className="flex-1">
+                      <CardTitle className="text-base sm:text-lg font-semibold text-slate-800 mb-2 line-clamp-2">
                         {form.name}
                       </CardTitle>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         {form.is_predefined && (
                           <Badge variant="secondary" className="text-xs">
                             Predefined
@@ -153,12 +153,12 @@ const SuperAdminForms: React.FC = () => {
                       </div>
                     </div>
                     
-                    <div className="flex gap-1">
+                    <div className="flex gap-1 sm:gap-2">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => navigate(`/form-builder/${form.id}`)}
-                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 min-w-[40px] sm:min-w-[44px]"
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -168,7 +168,7 @@ const SuperAdminForms: React.FC = () => {
                         size="sm"
                         onClick={() => handleDeleteForm(form.id, form.name)}
                         disabled={deleting === form.id}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 min-w-[40px] sm:min-w-[44px]"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -177,22 +177,22 @@ const SuperAdminForms: React.FC = () => {
                 </CardHeader>
                 
                 <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                      <Calendar className="h-4 w-4" />
-                      Created {new Date(form.created_at).toLocaleDateString()}
+                  <div className="space-y-2 sm:space-y-3">
+                    <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600">
+                      <Calendar className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                      <span className="truncate">Created {new Date(form.created_at).toLocaleDateString()}</span>
                     </div>
                     
                     {form.creator && (
-                      <div className="flex items-center gap-2 text-sm text-slate-600">
-                        <User className="h-4 w-4" />
-                        By {form.creator.email}
+                      <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600">
+                        <User className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                        <span className="truncate">By {form.creator.email}</span>
                       </div>
                     )}
                     
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                      <FileText className="h-4 w-4" />
-                      {form.fields?.filter((field: any) => field.sensitive).length || 0} sensitive fields
+                    <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600">
+                      <FileText className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                      <span>{form.fields?.filter((field: any) => field.sensitive).length || 0} sensitive fields</span>
                     </div>
                   </div>
                 </CardContent>
@@ -201,13 +201,13 @@ const SuperAdminForms: React.FC = () => {
           </div>
 
           {forms.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <FileText className="h-16 w-16 text-slate-400 mb-4" />
-              <h3 className="text-xl font-semibold text-slate-600 mb-2">No forms created yet</h3>
-              <p className="text-slate-500 mb-6">Start by creating your first form template</p>
+            <div className="flex flex-col items-center justify-center py-8 sm:py-12 text-center px-4">
+              <FileText className="h-12 w-12 sm:h-16 sm:w-16 text-slate-400 mb-4" />
+              <h3 className="text-lg sm:text-xl font-semibold text-slate-600 mb-2">No forms created yet</h3>
+              <p className="text-slate-500 mb-6 text-sm sm:text-base max-w-md">Start by creating your first form template</p>
               <Button 
                 onClick={() => navigate('/form-builder')}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 w-full sm:w-auto"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Create Form
