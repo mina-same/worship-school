@@ -36,6 +36,7 @@ const UserManagement: React.FC = () => {
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [searching, setSearching] = useState(false);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [showAdminSelector, setShowAdminSelector] = useState<string | null>(null);
 
   const fetchData = async () => {
     try {
@@ -323,7 +324,10 @@ const UserManagement: React.FC = () => {
         </CardHeader>
         <CardContent className="p-3 sm:p-6">
           <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-            {users.map((user) => (
+            {users.map((user) => {
+              const userAssignments = assignments.filter(a => a.user_id === user.id);
+              
+              return (
               <div
                 key={user.id}
                 draggable
@@ -382,8 +386,102 @@ const UserManagement: React.FC = () => {
                     </Button>
                   </div>
                 </div>
+                
+                {userAssignments.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-slate-100">
+                    <div className="space-y-2">
+                      {userAssignments.map((assignment) => (
+                        <div key={assignment.id} className="flex items-center gap-2 text-xs">
+                          <Avatar className="h-6 w-6">
+                            <AvatarImage 
+                              src={assignment.admin.avatar_url} 
+                              alt={assignment.admin.display_name || assignment.admin.email}
+                              className="object-cover"
+                              referrerPolicy="no-referrer"
+                              crossOrigin="anonymous"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
+                            <AvatarFallback className="bg-purple-100 text-purple-800 font-semibold text-xs">
+                              {assignment.admin.display_name 
+                                ? assignment.admin.display_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                                : assignment.admin.email.substring(0, 2).toUpperCase()
+                              }
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-slate-700">
+                            {assignment.admin.display_name || assignment.admin.email}
+                          </span>
+                          <Badge variant="outline" className="text-xs">Admin</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <Button
+                  onClick={() => setShowAdminSelector(user.id)}
+                  size="sm"
+                  variant="outline"
+                  className="sm:opacity-0 group-hover:opacity-100 transition-opacity w-full mt-2 sm:mt-0"
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Add Admin
+                </Button>
+                {showAdminSelector === user.id && (
+                  <div className="mt-2 p-2 bg-slate-50 rounded-lg border border-slate-200">
+                    <p className="text-xs font-medium text-slate-600 mb-2">Choose an admin:</p>
+                    <div className="space-y-1">
+                      {admins.filter(admin => !userAssignments.some(ua => ua.admin_id === admin.id)).length > 0 ? (
+                        admins.filter(admin => !userAssignments.some(ua => ua.admin_id === admin.id)).map((admin) => (
+                          <Button
+                            key={admin.id}
+                            onClick={() => {
+                              assignUserToAdmin(admin.id, user);
+                              setShowAdminSelector(null);
+                            }}
+                            size="sm"
+                            variant="ghost"
+                            className="w-full justify-start text-xs h-8"
+                          >
+                            <Avatar className="h-4 w-4 mr-2">
+                              <AvatarImage 
+                                src={admin.avatar_url} 
+                                alt={admin.display_name || admin.email}
+                                className="object-cover"
+                                referrerPolicy="no-referrer"
+                                crossOrigin="anonymous"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).style.display = 'none';
+                                }}
+                              />
+                              <AvatarFallback className="bg-purple-100 text-purple-800 font-semibold text-xs">
+                                {admin.display_name 
+                                  ? admin.display_name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+                                  : admin.email.substring(0, 2).toUpperCase()
+                                }
+                              </AvatarFallback>
+                            </Avatar>
+                            {admin.display_name || admin.email}
+                          </Button>
+                        ))
+                      ) : (
+                        <p className="text-xs text-slate-500 italic">No available admins to assign</p>
+                      )}
+                    </div>
+                    <Button
+                      onClick={() => setShowAdminSelector(null)}
+                      size="sm"
+                      variant="ghost"
+                      className="w-full mt-2 text-xs"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                )}
               </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>
