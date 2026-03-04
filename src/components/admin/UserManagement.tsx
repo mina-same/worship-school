@@ -35,6 +35,7 @@ const UserManagement: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [searching, setSearching] = useState(false);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
 
   const fetchData = async () => {
     try {
@@ -268,6 +269,37 @@ const UserManagement: React.FC = () => {
     setSearchResults([]);
   };
 
+  const deleteUser = async (targetUser: User) => {
+    const confirmed = window.confirm(
+      `Delete ${targetUser.email}? This will permanently remove the account and all related data.`
+    );
+    if (!confirmed) return;
+
+    setDeletingUserId(targetUser.id);
+    try {
+      const { error } = await supabase.functions.invoke('delete-user', {
+        body: { userId: targetUser.id }
+      });
+
+      if (error) throw error;
+
+      await fetchData();
+      toast({
+        title: "Success",
+        description: "User deleted successfully",
+      });
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete user",
+        variant: "destructive"
+      });
+    } finally {
+      setDeletingUserId(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -328,15 +360,27 @@ const UserManagement: React.FC = () => {
                       <Badge variant="secondary" className="text-xs mt-1">User</Badge>
                     </div>
                   </div>
-                  <Button
-                    onClick={() => promoteToAdmin(user.id)}
-                    size="sm"
-                    variant="outline"
-                    className="sm:opacity-0 group-hover:opacity-100 transition-opacity w-full sm:w-auto mt-2 sm:mt-0"
-                  >
-                    <Crown className="h-3 w-3 mr-1" />
-                    Promote
-                  </Button>
+                  <div className="flex flex-col gap-2 w-full">
+                    <Button
+                      onClick={() => promoteToAdmin(user.id)}
+                      size="sm"
+                      variant="outline"
+                      className="sm:opacity-0 group-hover:opacity-100 transition-opacity w-full mt-2 sm:mt-0"
+                    >
+                      <Crown className="h-3 w-3 mr-1" />
+                      Promote
+                    </Button>
+                    <Button
+                      onClick={() => deleteUser(user)}
+                      size="sm"
+                      variant="outline"
+                      disabled={deletingUserId === user.id}
+                      className="sm:opacity-0 group-hover:opacity-100 transition-opacity w-full mt-2 sm:mt-0 border-red-200 text-red-600 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      Delete
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -460,7 +504,7 @@ const UserManagement: React.FC = () => {
                         <Badge className="bg-purple-100 text-purple-800 mt-1">Admin</Badge>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
                       <Button
                         onClick={() => toggleAdminExpanded(admin.id)}
                         size="sm"
@@ -486,6 +530,16 @@ const UserManagement: React.FC = () => {
                         className="border-red-200 text-red-600 hover:bg-red-50"
                       >
                         Demote
+                      </Button>
+                      <Button
+                        onClick={() => deleteUser(admin)}
+                        size="sm"
+                        variant="outline"
+                        disabled={deletingUserId === admin.id}
+                        className="border-red-200 text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-3 w-3 mr-1" />
+                        Delete
                       </Button>
                     </div>
                   </div>
